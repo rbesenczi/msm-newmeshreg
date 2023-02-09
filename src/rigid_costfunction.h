@@ -11,7 +11,7 @@
 #ifdef HAS_HOCR
 #include "Fusion.h"
 #else
-#include <FastPD/FastPD.h>
+#include <FastPD.h>
 #endif
 
 namespace newmeshreg {
