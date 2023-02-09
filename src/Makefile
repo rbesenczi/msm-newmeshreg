@@ -2,7 +2,7 @@ include ${FSLCONFDIR}/default.mk
 
 PROJNAME = NewMeshReg
 SOFILES  = libfsl-newmeshreg.so
-LIBS     = -lfsl-fastPD2 -lfsl-newimage -lfsl-miscmaths -lfsl-utils -lfsl-newresampler
+LIBS     = -lfsl-fastPD -lfsl-newimage -lfsl-miscmaths -lfsl-utils -lfsl-newresampler
 USRCXXFLAGS+= -DHAS_HOCR -fopenmp
 
 all: ${SOFILES}
