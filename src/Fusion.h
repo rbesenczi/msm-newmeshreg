@@ -6,7 +6,7 @@
 #endif
 
 #include "DiscreteCostFunction.h"
-#include "FastPD2/FastPD.h"
+#include "FastPD.h"
 
 #define NUM_SWEEPS 2
 #define MAX_IMPROVEMENTS 0
