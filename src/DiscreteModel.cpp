@@ -276,7 +276,7 @@ void NonLinearSRegDiscreteModel::setupCostFunction() {
     costfct->set_labels(m_labels,m_ROT);
     if(m_verbosity) cout << " initialize cost function " << m_iter <<  endl;
 
-    costfct->initialize(m_num_nodes,m_num_labels,m_num_pairs,m_num_triplets,0);
+    costfct->initialize(m_num_nodes,m_num_labels,m_num_pairs,m_num_triplets);
     costfct->get_source_data();
 
     if(_pairwise) costfct->setPairs(pairs);

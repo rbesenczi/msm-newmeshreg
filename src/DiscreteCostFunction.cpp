@@ -5,7 +5,7 @@ using namespace std;
 namespace newmeshreg {
 
 //================================BASE CLASS===========================================================================//
-void DiscreteCostFunction::initialize(int numNodes, int numLabels, int numPairs, int numTriplets, int numQuartets) {
+void DiscreteCostFunction::initialize(int numNodes, int numLabels, int numPairs, int numTriplets) {
 
     if (m_num_nodes != numNodes || m_num_labels != numLabels)
     {
@@ -23,7 +23,6 @@ void DiscreteCostFunction::initialize(int numNodes, int numLabels, int numPairs,
     m_num_labels = numLabels;
     m_num_pairs = numPairs;
     m_num_triplets = numTriplets;
-    m_num_quartets = numQuartets;
 
     std::fill(unarycosts,unarycosts+m_num_labels*m_num_nodes,0.0f);
     std::fill(paircosts,paircosts+m_num_labels*m_num_labels*m_num_pairs,0.0f);
@@ -40,7 +39,6 @@ double DiscreteCostFunction::evaluateTotalCostSumZeroLabeling() {
     double cost_sum_unary = 0.0f;
     double cost_sum_pairwise = 0.0f;
     double cost_sum_triplet = 0.0f;
-    double cost_sum_quartet = 0.0f;
 
     for (int i = 0; i < m_num_nodes; ++i)
         cost_sum_unary += computeUnaryCost(i, label);
@@ -51,16 +49,13 @@ double DiscreteCostFunction::evaluateTotalCostSumZeroLabeling() {
     for (int t = 0; t < m_num_triplets; ++t)
         cost_sum_triplet += computeTripletCost(t, label, label, label);
 
-    for (int q = 0; q < m_num_quartets; ++q)
-        cost_sum_quartet += computeQuartetCost(q, label, label, label, label);
-
     if(_debug)
-        cout << m_num_quartets << " cost_sum_unary " << cost_sum_unary << " cost_sum_pairwise "
-        << cost_sum_pairwise  << " cost_sum_triplet " << cost_sum_triplet << " cost_sum_quartet "
-        << cost_sum_quartet << " total " <<  cost_sum_unary + cost_sum_pairwise + cost_sum_triplet + cost_sum_quartet
+        cout << "cost_sum_unary " << cost_sum_unary << " cost_sum_pairwise "
+        << cost_sum_pairwise  << " cost_sum_triplet " << cost_sum_triplet
+        << " total " <<  cost_sum_unary + cost_sum_pairwise + cost_sum_triplet
         << " m_num_triplets " << m_num_triplets <<   endl;
 
-    return cost_sum_unary + cost_sum_pairwise + cost_sum_triplet + cost_sum_quartet;
+    return cost_sum_unary + cost_sum_pairwise + cost_sum_triplet;
 }
 
 double DiscreteCostFunction::evaluateTotalCostSum(const int *labeling, const int *pairs, const int *triplets, const int *quartets) {
@@ -68,7 +63,6 @@ double DiscreteCostFunction::evaluateTotalCostSum(const int *labeling, const int
     double cost_sum_unary = 0.0f;
     double cost_sum_pairwise = 0.0f;
     double cost_sum_triplet = 0.0f;
-    double cost_sum_quartet = 0.0f;
 
     for (int i = 0; i < m_num_nodes; ++i)
         cost_sum_unary += computeUnaryCost(i, labeling[i]);
@@ -79,16 +73,13 @@ double DiscreteCostFunction::evaluateTotalCostSum(const int *labeling, const int
     for (int t = 0; t < m_num_triplets; ++t)
         cost_sum_triplet += computeTripletCost(t, labeling[triplets[t * 3]], labeling[triplets[t * 3 + 1]], labeling[triplets[t * 3 + 2]]);
 
-    for (int q = 0; q < m_num_quartets; ++q)
-        cost_sum_quartet += computeQuartetCost(q, labeling[quartets[q * 4]], labeling[quartets[q * 4 + 1]], labeling[quartets[q * 4 + 2]], labeling[quartets[q * 4 + 3]]);
-
     if(_verbosity)
-        cout << m_num_quartets << " cost_sum_unary " << cost_sum_unary << " cost_sum_pairwise " << cost_sum_pairwise
-        << " cost_sum_triplet " << cost_sum_triplet << " cost_sum_quartet " << cost_sum_quartet
-        <<" total " <<  cost_sum_unary + cost_sum_pairwise + cost_sum_triplet + cost_sum_quartet
+        cout << "cost_sum_unary " << cost_sum_unary << " cost_sum_pairwise " << cost_sum_pairwise
+        << " cost_sum_triplet " << cost_sum_triplet
+        <<" total " <<  cost_sum_unary + cost_sum_pairwise + cost_sum_triplet
         << " m_num_triplets 2 " << m_num_triplets <<  endl;
 
-    return cost_sum_unary + cost_sum_pairwise + cost_sum_triplet + cost_sum_quartet;
+    return cost_sum_unary + cost_sum_pairwise + cost_sum_triplet;
 }
 
 double DiscreteCostFunction::evaluateUnaryCostSum(const int *labeling) {
@@ -115,16 +106,8 @@ double DiscreteCostFunction::evaluateTripletCostSum(const int *labeling, const i
     return cost_sum_triplet;
 }
 
-double DiscreteCostFunction::evaluateQuartetCostSum(const int *labeling, const int *quartets) {
-
-    double cost_sum_quartet = 0.0f;
-    for (int q = 0; q < m_num_quartets; ++q)
-        cost_sum_quartet += computeQuartetCost(q, labeling[quartets[q * 3]], labeling[quartets[q * 3 + 1]],labeling[quartets[q * 3 + 2]], labeling[quartets[q * 3 + 3]]);
-    return cost_sum_quartet;
-}
-
 //================================SURFACE CLASS===========================================================================//
-void SRegDiscreteCostFunction::initialize(int numNodes,  int numLabels, int numPairs, int numTriplets, int numQuartets)
+void SRegDiscreteCostFunction::initialize(int numNodes,  int numLabels, int numPairs, int numTriplets)
 {
     if (_TARGET.nvertices() == 0 || _SOURCE.nvertices() == 0)
         throw MeshregException("CostFunction::You must supply source and target meshes.");
@@ -133,7 +116,7 @@ void SRegDiscreteCostFunction::initialize(int numNodes,  int numLabels, int numP
     if (_HIGHREScfweight.Nrows() != 1 && _HIGHREScfweight.Nrows() != FEAT->get_dim())
         throw MeshregException("DiscreteModel ERROR:: costfunction weighting has dimensions incompatible with data");
 
-    DiscreteCostFunction::initialize(numNodes,numLabels,numPairs,numTriplets,numQuartets);
+    DiscreteCostFunction::initialize(numNodes,numLabels,numPairs,numTriplets);
 }
 
 void SRegDiscreteCostFunction::set_parameters(myparam& ALLPARAMS){
@@ -206,8 +189,8 @@ NonLinearSRegDiscreteCostFunction::NonLinearSRegDiscreteCostFunction() {
     _expscaling = 1; _k_exp = 2.0; _maxdist = 4; _rexp = 2; _kNN = 5; _rmode = 1; _mu = 0.4; _kappa = 1.6;
 }
 
-void NonLinearSRegDiscreteCostFunction::initialize(int numNodes, int numLabels, int numPairs, int numTriplets,int numQuartets) {
-    SRegDiscreteCostFunction::initialize(numNodes, numLabels, numPairs, numTriplets, numQuartets);
+void NonLinearSRegDiscreteCostFunction::initialize(int numNodes, int numLabels, int numPairs, int numTriplets) {
+    SRegDiscreteCostFunction::initialize(numNodes, numLabels, numPairs, numTriplets);
 }
 
 void NonLinearSRegDiscreteCostFunction::set_parameters(myparam& ALLPARAMS) {
@@ -507,9 +490,9 @@ void NonLinearSRegDiscreteCostFunction::get_target_data(int node, const NEWMAT::
 }
 
 //================================ UNIVARIATE Non Linear SURFACE CLASS===========================================================================//
-void UnivariateNonLinearSRegDiscreteCostFunction::initialize(int numNodes, int numLabels, int numPairs, int numTriplets, int numQuartets) {
+void UnivariateNonLinearSRegDiscreteCostFunction::initialize(int numNodes, int numLabels, int numPairs, int numTriplets) {
 
-    NonLinearSRegDiscreteCostFunction::initialize(numNodes, numLabels, numPairs, numTriplets, numQuartets);
+    NonLinearSRegDiscreteCostFunction::initialize(numNodes, numLabels, numPairs, numTriplets);
     _sourcedata.clear(); _sourcedata.resize(_CPgrid.nvertices(), vector<double>());
     _sourceinrange.clear(); _sourceinrange.resize(_CPgrid.nvertices(), vector<int>());
     _targetdata.clear(); _targetdata.resize(_CPgrid.nvertices(), vector<double>());

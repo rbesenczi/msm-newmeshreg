@@ -42,10 +42,8 @@ double Fusion::optimize(const std::shared_ptr<DiscreteModel>& energy, Reduction 
     const int numNodes    = energy->getNumNodes();
     const int numPairs    = energy->getNumPairs();
     const int numTriplets = energy->getNumTriplets();
-    const int numQuartets = energy->getNumQuartets();
     const int *pairs    = energy->getPairs();
     const int *triplets = energy->getTriplets();
-    const int *quartets = energy->getQuartets();
 
 #ifdef HAS_QPBO
     if(verbose) cout << " has QPBO " << endl;
@@ -88,6 +86,7 @@ double Fusion::optimize(const std::shared_ptr<DiscreteModel>& energy, Reduction 
 
                 std::vector<PairData> pair_data(numPairs);
 
+                #pragma omp parallel for
                 for(int pair = 0; pair < numPairs; ++pair)
                 {
                     const int nodeA = pairs[pair*2];
@@ -110,6 +109,7 @@ double Fusion::optimize(const std::shared_ptr<DiscreteModel>& energy, Reduction 
 
                 std::vector<TripletData> triplet_data(numTriplets);
 
+                #pragma omp parallel for
                 for (int triplet = 0; triplet < numTriplets; ++triplet)
                 {
                     const int nodeA = triplets[triplet*3];
@@ -133,49 +133,6 @@ double Fusion::optimize(const std::shared_ptr<DiscreteModel>& energy, Reduction 
                     const int nodeC = triplets[triplet*3+2];
                     int node_ids[3] = { nodeA, nodeB, nodeC };
                     pbf.AddHigherTerm(3, node_ids, triplet_data[triplet].buffer);
-                }
-
-                std::vector<QuartetData> quartet_data(numQuartets);
-
-                for (int quartet = 0; quartet < numQuartets; ++quartet)
-                {
-                    const int nodeA = quartets[quartet*4];
-                    const int nodeB = quartets[quartet*4+1];
-                    const int nodeC = quartets[quartet*4+2];
-                    const int nodeD = quartets[quartet*4+3];
-                    if(!(label==labeling[nodeA] && label==labeling[nodeB] && label==labeling[nodeC] && label==labeling[nodeD]))
-                    {
-                        quartet_data[quartet].buffer[0]  = energy->computeQuartetCost(quartet,labeling[nodeA],labeling[nodeB],labeling[nodeC],labeling[nodeD]);
-                        quartet_data[quartet].buffer[1]  = energy->computeQuartetCost(quartet,labeling[nodeA],labeling[nodeB],labeling[nodeC],label);
-                        quartet_data[quartet].buffer[2]  = energy->computeQuartetCost(quartet,labeling[nodeA],labeling[nodeB],label,labeling[nodeD]);
-                        quartet_data[quartet].buffer[3]  = energy->computeQuartetCost(quartet,labeling[nodeA],labeling[nodeB],label,label);
-
-                        quartet_data[quartet].buffer[4]  = energy->computeQuartetCost(quartet,labeling[nodeA],label,labeling[nodeC],labeling[nodeD]);
-                        quartet_data[quartet].buffer[5]  = energy->computeQuartetCost(quartet,labeling[nodeA],label,labeling[nodeC],label);
-                        quartet_data[quartet].buffer[6]  = energy->computeQuartetCost(quartet,labeling[nodeA],label,label,labeling[nodeD]);
-                        quartet_data[quartet].buffer[7]  = energy->computeQuartetCost(quartet,labeling[nodeA],label,label,label);
-                        quartet_data[quartet].buffer[8]  = energy->computeQuartetCost(quartet,label,labeling[nodeB],labeling[nodeC],labeling[nodeD]);
-                        quartet_data[quartet].buffer[9]  = energy->computeQuartetCost(quartet,label,labeling[nodeB],labeling[nodeC],label);
-                        quartet_data[quartet].buffer[10] = energy->computeQuartetCost(quartet,label,labeling[nodeB],label,labeling[nodeD]);
-                        quartet_data[quartet].buffer[11] = energy->computeQuartetCost(quartet,label,labeling[nodeB],label,label);
-                        quartet_data[quartet].buffer[12] = energy->computeQuartetCost(quartet,label,label,labeling[nodeC],labeling[nodeD]);
-                        quartet_data[quartet].buffer[13] = energy->computeQuartetCost(quartet,label,label,labeling[nodeC],label);
-                        quartet_data[quartet].buffer[14] = energy->computeQuartetCost(quartet,label,label,label,labeling[nodeD]);
-                        quartet_data[quartet].buffer[15] = energy->computeQuartetCost(quartet,label,label,label,label);
-                    }
-                }
-
-                for (int quartet = 0; quartet < numQuartets; ++quartet)
-                {
-                    const int nodeA = quartets[quartet*4];
-                    const int nodeB = quartets[quartet*4+1];
-                    const int nodeC = quartets[quartet*4+2];
-                    const int nodeD = quartets[quartet*4+3];
-                    if(! (label==labeling[nodeA] && label==labeling[nodeB] && label==labeling[nodeC] && label==labeling[nodeD]))
-                    {
-                        int node_ids[4] = { nodeA, nodeB, nodeC, nodeD };
-                        pbf.AddHigherTerm(4, node_ids, quartet_data[quartet].buffer);
-                    }
                 }
 
                 double newEnergy;

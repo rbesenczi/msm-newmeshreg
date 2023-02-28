@@ -30,7 +30,6 @@ public:
     void reset(); //Resets all costs to zero.
     void setPairs(int* p) { _pairs = p; } //Sets the pairs index buffer.
     void setTriplets(int* p) { _triplets = p; } //Sets the pairs index buffer.
-    void setQuartets(int* p) { _quartets = p; } //Sets the quartets index buffer.
 
     //---GET--//
     double* getUnaryCosts() { return unarycosts; } //Returns the unary costs look-up table.
@@ -42,32 +41,28 @@ public:
     virtual void computePairwiseCosts(const int *pairs){}; //Computes the pairwise costs look-up table.
     virtual double computePairwiseCost(int pair, int labelA, int labelB){ return 0; }; //Computes the pairwise potential for a the given pair and labels.
     virtual double computeTripletCost(int triplet, int labelA, int labelB, int labelC) { return 0; } //Computes the triplet potential for a the given triplet and labels.
-    virtual double computeQuartetCost(int quartet, int labelA, int labelB, int labelC, int labelD) { return 0; } //Computes the quartet potential for a the given triplet and labels.
     double evaluateTotalCostSumZeroLabeling(); //Evaluates the total cost for the zero labeling.
     virtual double evaluateTotalCostSum(const int *labeling, const int *pairs, const int *triplets,const int *quartets); //Evaluates the total cost for the given labeling.
     double evaluateUnaryCostSum(const int *labeling); //Evaluates the sum of unary costs for a given labeling.
     double evaluatePairwiseCostSum(const int *labeling, const int *pairs); //Evaluates the sum of pairwise costs for a given labeling.
     double evaluateTripletCostSum(const int *labeling, const int *triplets); //Evaluates the sum of triplet costs for a given labeling.
-    double evaluateQuartetCostSum(const int *labeling, const int *quartets); //Evaluates the sum of quartet costs for a given labeling.
 
     virtual void set_parameters(myparam&) = 0;
     virtual void report(){};
 
 protected:
-    void initialize(int numNodes, int numLabels, int numPairs, int numTriplets, int numQuartets);
+    void initialize(int numNodes, int numLabels, int numPairs, int numTriplets);
 
     int m_num_nodes = 0;
     int	m_num_labels = 0;
     int m_num_pairs = 0;
     int m_num_triplets = 0;
-    int m_num_quartets = 0;
 
     double* unarycosts = nullptr; // Unary potentials look-up table.
     double* paircosts = nullptr; // Pairwise potentials look-up table.
 
     int* _pairs = nullptr;
     int* _triplets = nullptr;
-    int* _quartets = nullptr;
     int* labels = nullptr; // Labeling array.
 
     float _reglambda = 0.0;  // scaling parameter for regulariser
@@ -144,7 +139,7 @@ public:
     //---INITIALISE---//
     SRegDiscreteCostFunction() = default;
     void set_parameters(myparam&) override;
-    virtual void initialize(int numNodes, int numLabels, int numPairs, int numTriplets, int numQuartets);
+    virtual void initialize(int numNodes, int numLabels, int numPairs, int numTriplets);
     void initialize_regulariser(){ if (_aSOURCE.nvertices() > 0 && _rmode >= 3) anattree = std::make_shared<newresampler::Octree>(_TARGEThi); }
 
     //---SET---//
@@ -276,7 +271,7 @@ protected:
 public:
     NonLinearSRegDiscreteCostFunction();
 
-    void initialize(int numNodes, int numLabels, int numPairs, int numTriplets, int numQuartets) override;
+    void initialize(int numNodes, int numLabels, int numPairs, int numTriplets) override;
     void set_parameters(myparam&) override;
 
     void computeUnaryCosts() override;
@@ -284,7 +279,6 @@ public:
     void computePairwiseCosts(const int *pairs) override;
     double computeTripletCost(int triplet, int labelA, int labelB, int labelC) override;
     double triplet_likelihood(int, int, int, int, const newresampler::Point&, const newresampler::Point&, const newresampler::Point&) override { return 0; }
-    double computeQuartetCost(int quartet, int labelA, int labelB, int labelC, int labelD) override { return 0; }
 
     newresampler::Triangle deform_anatomy(int, int, std::map<int,newresampler::Point>&, std::map<int,bool>&, std::map<int,newresampler::Point>&);
     void resample_weights() override;
@@ -297,7 +291,7 @@ class UnivariateNonLinearSRegDiscreteCostFunction: public NonLinearSRegDiscreteC
 
 public:
     UnivariateNonLinearSRegDiscreteCostFunction()= default;
-    void initialize(int numNodes, int numLabels, int numPairs,int numTriplets, int numQuartets) override;
+    void initialize(int numNodes, int numLabels, int numPairs,int numTriplets) override;
     void get_source_data() override;
     double computeUnaryCost(int node, int label) override;
     void reset_target_data(int node) override{ _targetdata[node].clear(); }

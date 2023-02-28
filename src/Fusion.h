@@ -15,7 +15,6 @@ typedef	double REAL;
 struct UnaryData	{ REAL buffer[2]; };
 struct PairData		{ REAL buffer[4]; };
 struct TripletData	{ REAL buffer[8]; };
-struct QuartetData	{ REAL buffer[16]; };
 
 namespace ELCReduce { template<typename T> class PBF; }
 

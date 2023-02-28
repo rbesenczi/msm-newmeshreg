@@ -11,11 +11,11 @@ class DiscreteModel {
 
 public:
     DiscreteModel()
-        : m_num_nodes(0), m_num_labels(0), m_num_pairs(0), m_num_triplets(0), m_num_quartets(0),
+        : m_num_nodes(0), m_num_labels(0), m_num_pairs(0), m_num_triplets(0), //m_num_quartets(0),
         labeling(nullptr), pairs(nullptr), triplets(nullptr), quartets(nullptr), m_verbosity(false) {}
 
     explicit DiscreteModel(myparam& P)
-        : m_num_nodes(0), m_num_labels(0), m_num_pairs(0), m_num_triplets(0), m_num_quartets(0),
+        : m_num_nodes(0), m_num_labels(0), m_num_pairs(0), m_num_triplets(0), //m_num_quartets(0),
         labeling(nullptr), pairs(nullptr), triplets(nullptr), quartets(nullptr), m_verbosity(false) {}
 
     virtual ~DiscreteModel() {
@@ -30,12 +30,12 @@ public:
     int getNumLabels() const { return m_num_labels; }
     int getNumPairs() const { return m_num_pairs; }
     int getNumTriplets() const { return m_num_triplets; }
-    int getNumQuartets() const { return m_num_quartets; }
+    //int getNumQuartets() const { return m_num_quartets; }
     int* getLabeling() { return labeling; }
     const int* getLabeling() const { return labeling; }
     const int* getPairs() const { return pairs; }
     const int* getTriplets() const { return triplets; }
-    const int* getQuartets() const { return quartets; }
+    //const int* getQuartets() const { return quartets; }
     virtual std::shared_ptr<DiscreteCostFunction> getCostFunction() = 0;
 
     //---COMPUTE---//
@@ -44,13 +44,13 @@ public:
     virtual void computePairwiseCosts(){}
     virtual double computePairwiseCost(int pair, int labelA, int labelB){ return 0;}
     virtual double computeTripletCost(int triplet, int labelA, int labelB, int labelC) { return 0; }
-    virtual double computeQuartetCost(int quartet, int labelA, int labelB, int labelC, int labelD) { return 0; }
+    //virtual double computeQuartetCost(int quartet, int labelA, int labelB, int labelC, int labelD) { return 0; }
     virtual double evaluateTotalCostSumZeroLabeling(){ return 0; }
     virtual double evaluateTotalCostSum(){ return 0; }
     virtual double evaluateUnaryCostSum(){ return 0; }
     virtual double evaluatePairwiseCostSum(){ return 0; }
     virtual double evaluateTripletCostSum(){ return 0; }
-    virtual double evaluateQuartetCostSum(){ return 0; }
+    //virtual double evaluateQuartetCostSum(){ return 0; }
 
     //---MODIFY---//
     virtual void applyLabeling(){}
@@ -80,7 +80,7 @@ protected:
     int m_num_labels;   // Number of labels.
     int m_num_pairs;    // Number of node pairs.
     int m_num_triplets; // Number of node triplets.
-    int m_num_quartets;	// Number of node quartets (currently none).
+    //int m_num_quartets;	// Number of node quartets (currently none).
     int* labeling;      // Labeling array.
     int* pairs;         // Node pairs array.
     int* triplets;      // Node triplets array.
@@ -166,14 +166,14 @@ public:
     void computePairwiseCosts() override { if(costfct) costfct->computePairwiseCosts(pairs); }
     double computePairwiseCost(int pair, int labelA, int labelB) override {return (costfct) ? costfct->computePairwiseCost(pair,labelA,labelB): 0.0f; }
     double computeTripletCost(int triplet, int labelA, int labelB, int labelC) override { return (costfct) ? costfct->computeTripletCost(triplet,labelA,labelB,labelC) : 0.0f; }
-    double computeQuartetCost(int quartet, int labelA, int labelB, int labelC, int labelD) override { return (costfct) ? costfct->computeQuartetCost(quartet,labelA,labelB,labelC,labelD) : 0.0f; }
+    //double computeQuartetCost(int quartet, int labelA, int labelB, int labelC, int labelD) override { return (costfct) ? costfct->computeQuartetCost(quartet,labelA,labelB,labelC,labelD) : 0.0f; }
 
     double evaluateTotalCostSumZeroLabeling() override { return (costfct) ? costfct->evaluateTotalCostSumZeroLabeling() : 0.0f; }
     double evaluateTotalCostSum() override { return (costfct) ? costfct->evaluateTotalCostSum(labeling,pairs,triplets,quartets) : 0.0f; }
     double evaluateUnaryCostSum() override { if(costfct) return costfct->evaluateUnaryCostSum(labeling); else return 0.0f; }
     double evaluatePairwiseCostSum() override { if(costfct) return costfct->evaluatePairwiseCostSum(labeling,pairs); else return 0.0f; }
     double evaluateTripletCostSum() override { if(costfct) return costfct->evaluateTripletCostSum(labeling,triplets); else return 0.0f; }
-    double evaluateQuartetCostSum() override { if(costfct) return costfct->evaluateQuartetCostSum(labeling,triplets); else return 0.0f; }
+    //double evaluateQuartetCostSum() override { if(costfct) return costfct->evaluateQuartetCostSum(labeling,triplets); else return 0.0f; }
     void set_parameters(myparam& PAR) override;
 
     //---INITIALIZE MODEL---//
