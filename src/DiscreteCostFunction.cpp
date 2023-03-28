@@ -212,26 +212,16 @@ void NonLinearSRegDiscreteCostFunction::set_parameters(myparam& ALLPARAMS) {
 
 double NonLinearSRegDiscreteCostFunction::computeTripletCost(int triplet, int labelA, int labelB, int labelC){
 
-    if (!_triplets) throw MeshregException("DiscreteModel ERROR:: must run settripletss() prior to computTripleCost ");
-
-    if(triplet == 0 && _debug) { sumlikelihood = 0; sumregcost = 0; }
-
     double cost = 0.0, weight = 1.0;
 
-    std::vector<int> id;
     std::map<int,newresampler::Point> vertex;
+    vertex[_triplets[3*triplet]]   = (*ROTATIONS)[_triplets[3*triplet]]   * _labels[labelA];
+    vertex[_triplets[3*triplet+1]] = (*ROTATIONS)[_triplets[3*triplet+1]] * _labels[labelB];
+    vertex[_triplets[3*triplet+2]] = (*ROTATIONS)[_triplets[3*triplet+2]] * _labels[labelC];
 
-    id.push_back(_triplets[3*triplet]);
-    id.push_back(_triplets[3*triplet+1]);
-    id.push_back(_triplets[3*triplet+2]);
-
-    vertex[id[0]] = (*ROTATIONS)[id[0]] * _labels[labelA];
-    vertex[id[1]] = (*ROTATIONS)[id[1]] * _labels[labelB];
-    vertex[id[2]] = (*ROTATIONS)[id[2]] * _labels[labelC];
-
-    double likelihood = triplet_likelihood(triplet, id[0], id[1], id[2], vertex[id[0]], vertex[id[1]], vertex[id[2]]);
-
-    newresampler::Triangle TRI(vertex[id[0]], vertex[id[1]], vertex[id[2]], 0);
+    newresampler::Triangle TRI(vertex[_triplets[3*triplet]],
+                               vertex[_triplets[3*triplet+1]],
+                               vertex[_triplets[3*triplet+2]], 0);
     newresampler::Triangle TRI_noDEF(_CPgrid.get_coord(_triplets[3*triplet]),
                                      _CPgrid.get_coord(_triplets[3*triplet+1]),
                                      _CPgrid.get_coord(_triplets[3*triplet+2]),0);
@@ -322,14 +312,7 @@ double NonLinearSRegDiscreteCostFunction::computeTripletCost(int triplet, int la
 
     if (abs(cost) < 1e-8) cost = 0.0;
 
-    if(_debug)
-    {
-        sumlikelihood += likelihood;
-        sumregcost += weight * _reglambda * MISCMATHS::pow(cost,_rexp);
-    }
-    cost = likelihood + weight * _reglambda * MISCMATHS::pow(cost,_rexp);
-
-    return cost; // normalise to try and ensure equivalent lambda for each resolution level
+    return weight * _reglambda * MISCMATHS::pow(cost,_rexp); // normalise to try and ensure equivalent lambda for each resolution level
 }
 
 double NonLinearSRegDiscreteCostFunction::computePairwiseCost(int pair, int labelA, int labelB){
