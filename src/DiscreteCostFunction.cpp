@@ -458,8 +458,9 @@ void NonLinearSRegDiscreteCostFunction::resample_weights(){
         AbsoluteWeights(k) = maxweight;
     }
 
-    _SOURCE.set_pvalues(AbsoluteWeights);
-    AbsoluteWeights = newresampler::metric_resample(_SOURCE, _CPgrid).get_pvalues();
+    newresampler::Mesh tmp = _SOURCE;
+    tmp.set_pvalues(AbsoluteWeights);
+    AbsoluteWeights = newresampler::metric_resample(tmp, _CPgrid).get_pvalues();
 }
 
 void NonLinearSRegDiscreteCostFunction::get_target_data(int node, const NEWMAT::Matrix& PtROTATOR) {
@@ -481,11 +482,10 @@ void NonLinearSRegDiscreteCostFunction::get_target_data(int node, const NEWMAT::
             n1 = closest_triangle.get_vertex_no(1),
             n2 = closest_triangle.get_vertex_no(2);
 
-        for (int d = 1; d <= FEAT->get_dim(); d++)
-            _targetdata[node][i] = newresampler::barycentric_weight(v0, v1, v2, tmp,
-                                                                             FEAT->get_ref_val(d, n0 + 1),
-                                                                             FEAT->get_ref_val(d, n1 + 1),
-                                                                             FEAT->get_ref_val(d, n2 + 1));
+        _targetdata[node][i] = newresampler::barycentric_weight(v0, v1, v2, tmp,
+                                                                         FEAT->get_ref_val(1, n0 + 1),
+                                                                         FEAT->get_ref_val(1, n1 + 1),
+                                                                         FEAT->get_ref_val(1, n2 + 1));
     }
 }
 
@@ -509,14 +509,11 @@ void UnivariateNonLinearSRegDiscreteCostFunction::get_source_data() {
             if (within_controlpt_range(k, i))
             {
                 _sourceinrange[k].push_back(i);
-                for (int d = 1; d <= FEAT->get_dim(); d++)
-                {
-                    _sourcedata[k].push_back(FEAT->get_input_val(d, i + 1));
-                    if (_HIGHREScfweight.Nrows() >= d)
-                        _weights[k].emplace_back(_HIGHREScfweight(d, i + 1));
-                    else
-                        _weights[k].emplace_back(1.0);
-                }
+                _sourcedata[k].push_back(FEAT->get_input_val(1, i + 1));
+                if (_HIGHREScfweight.Nrows() >= 1)
+                    _weights[k].emplace_back(_HIGHREScfweight(1, i + 1));
+                else
+                    _weights[k].emplace_back(1.0);
             }
     resample_weights();
 }
@@ -534,6 +531,61 @@ double UnivariateNonLinearSRegDiscreteCostFunction::computeUnaryCost(int node, i
         return cost;
     else
         return -cost;
+}
+
+//================================Multivariate Non Linear SURFACE CLASS===========================================================================//
+void MultivariateNonLinearSRegDiscreteCostFunction::initialize(int numNodes, int numLabels, int numPairs, int numTriplets)
+{
+    NonLinearSRegDiscreteCostFunction::initialize(numNodes, numLabels,numPairs,numTriplets);
+    _sourcedata.clear(); _sourcedata.resize(_CPgrid.nvertices(), vector<double> ());
+    _sourceinrange.clear(); _sourceinrange.resize(_CPgrid.nvertices(), vector<int> ());
+    _targetdata.clear(); _targetdata.resize(_CPgrid.nvertices(), vector<double> ());
+    _weights.clear(); _weights.resize(_CPgrid.nvertices(), vector<double> ());
+}
+
+void MultivariateNonLinearSRegDiscreteCostFunction::get_source_data() {
+
+    for(auto& i : _sourcedata) i.clear();
+
+    #pragma omp parallel for
+    for (int k = 0; k < _CPgrid.nvertices(); k++)
+        for (int i = 0; i < _SOURCE.nvertices(); i++)
+            if (within_controlpt_range(k, i))
+            {
+                _sourceinrange[k].push_back(i);
+                for (int d = 1; d <= FEAT->get_dim(); d++)
+                {
+                    _sourcedata[k].push_back(FEAT->get_input_val(d, k + 1));
+                    if (_HIGHREScfweight.Nrows() >= d)
+                        _weights[k].emplace_back(_HIGHREScfweight(d, k + 1));
+                    else
+                        _weights[k].emplace_back(1.0);
+                }
+            }
+    resample_weights();
+}
+
+double MultivariateNonLinearSRegDiscreteCostFunction::computeUnaryCost(int node, int label){
+
+    double cost	= 0.0;
+
+    get_target_data(node,estimate_rotation_matrix(_CPgrid.get_coord(node),(*ROTATIONS)[node] * _labels[label]));
+
+    for(int i = 0; i < _sourceinrange[node].size(); ++i)
+        for(int dim = 0; dim < FEAT->get_dim(); ++dim)
+        {
+            int offset = dim * FEAT->get_dim();
+            cost += sim.get_sim_for_min({_sourcedata[node].begin() + offset, _sourcedata[node].begin() + offset+FEAT->get_dim()-1 },
+                                        {_targetdata[node].begin() + offset, _targetdata[node].begin() + offset+FEAT->get_dim()-1 },
+                                        {_weights[node].begin() + offset,_weights[node].begin() + offset+FEAT->get_dim()-1 });
+        }
+
+    if(!_sourceinrange[node].empty()) cost /= (_sourceinrange[node].size() * FEAT->get_dim());
+
+    if(_simmeasure==1 || _simmeasure==2)
+        return AbsoluteWeights(node + 1) * cost;
+    else
+        return -AbsoluteWeights(node + 1) * cost;
 }
 
 } //namespace newmeshreg

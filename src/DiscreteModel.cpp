@@ -62,8 +62,13 @@ void SRegDiscreteModel::Initialize(const newresampler::Mesh& CONTROLGRID) {
 }
 
 void SRegDiscreteModel::initialize_cost_function(bool MV, int sim, myparam& P) {
-  costfct = std::shared_ptr<SRegDiscreteCostFunction>(new UnivariateNonLinearSRegDiscreteCostFunction());
-  costfct->set_parameters(P);
+
+    if (MV)
+        costfct = std::shared_ptr<SRegDiscreteCostFunction>(new MultivariateNonLinearSRegDiscreteCostFunction());
+    else
+        costfct = std::shared_ptr<SRegDiscreteCostFunction>(new UnivariateNonLinearSRegDiscreteCostFunction());
+
+    costfct->set_parameters(P);
 }
 
 void SRegDiscreteModel::Initialize_sampling_grid() {

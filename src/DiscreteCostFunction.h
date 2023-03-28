@@ -282,9 +282,7 @@ public:
 
     newresampler::Triangle deform_anatomy(int, int, std::map<int,newresampler::Point>&, std::map<int,bool>&, std::map<int,newresampler::Point>&);
     void resample_weights() override;
-    void get_target_data(int, const NEWMAT::Matrix &);
-    // data is held in 2D vectors in each case, but for univariate case data is controlpointsxfeatures and
-    // for multivariate its sourcepointsxfeatures. This function determines the correct index for rows
+    virtual void get_target_data(int, const NEWMAT::Matrix &);
 };
 
 class UnivariateNonLinearSRegDiscreteCostFunction: public NonLinearSRegDiscreteCostFunction {
@@ -294,7 +292,16 @@ public:
     void initialize(int numNodes, int numLabels, int numPairs,int numTriplets) override;
     void get_source_data() override;
     double computeUnaryCost(int node, int label) override;
-    void reset_target_data(int node) override{ _targetdata[node].clear(); }
+    void reset_target_data(int node) override { _targetdata[node].clear(); }
+};
+
+class MultivariateNonLinearSRegDiscreteCostFunction: public NonLinearSRegDiscreteCostFunction {
+
+public:
+    MultivariateNonLinearSRegDiscreteCostFunction() = default;
+    void initialize(int numNodes,int numLabels, int numPairs, int numTriplets = 0) override;
+    void get_source_data() override;
+    double computeUnaryCost(int node, int label) override;
 };
 
 } //namespace newmeshreg
