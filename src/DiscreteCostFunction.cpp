@@ -449,7 +449,7 @@ void NonLinearSRegDiscreteCostFunction::resample_weights(){
 void NonLinearSRegDiscreteCostFunction::get_target_data(int node, const NEWMAT::Matrix& PtROTATOR) {
 
     _targetdata[node].clear();
-    _targetdata[node].resize(_sourceinrange[node].size());
+    _targetdata[node].resize(_sourceinrange[node].size() * FEAT->get_dim());
 
     #pragma omp parallel for
     for(unsigned int i = 0; i < _sourceinrange[node].size(); i++)
@@ -465,10 +465,11 @@ void NonLinearSRegDiscreteCostFunction::get_target_data(int node, const NEWMAT::
             n1 = closest_triangle.get_vertex_no(1),
             n2 = closest_triangle.get_vertex_no(2);
 
-        _targetdata[node][i] = newresampler::barycentric_weight(v0, v1, v2, tmp,
-                                                                         FEAT->get_ref_val(1, n0 + 1),
-                                                                         FEAT->get_ref_val(1, n1 + 1),
-                                                                         FEAT->get_ref_val(1, n2 + 1));
+        for(int dim = 0; dim < FEAT->get_dim(); ++dim)
+            _targetdata[node][i*FEAT->get_dim()+dim] = newresampler::barycentric_weight(v0, v1, v2, tmp,
+                                                                         FEAT->get_ref_val(dim+1, n0+1),
+                                                                         FEAT->get_ref_val(dim+1, n1+1),
+                                                                         FEAT->get_ref_val(dim+1, n2+1));
     }
 }
 
