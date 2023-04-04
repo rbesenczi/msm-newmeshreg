@@ -212,19 +212,29 @@ void NonLinearSRegDiscreteCostFunction::set_parameters(myparam& ALLPARAMS) {
 
 double NonLinearSRegDiscreteCostFunction::computeTripletCost(int triplet, int labelA, int labelB, int labelC){
 
+    if(!_triplets) throw MeshregException("DiscreteModel ERROR:: must run settripletss() prior to computTripleCost");
+
     double cost = 0.0, weight = 1.0;
+    if(triplet == 0 && _debug) { sumlikelihood = 0.0; sumregcost = 0.0; }
 
     std::map<int,newresampler::Point> vertex;
-    vertex[_triplets[3*triplet]]   = (*ROTATIONS)[_triplets[3*triplet]]   * _labels[labelA];
-    vertex[_triplets[3*triplet+1]] = (*ROTATIONS)[_triplets[3*triplet+1]] * _labels[labelB];
-    vertex[_triplets[3*triplet+2]] = (*ROTATIONS)[_triplets[3*triplet+2]] * _labels[labelC];
 
-    newresampler::Triangle TRI(vertex[_triplets[3*triplet]],
-                               vertex[_triplets[3*triplet+1]],
-                               vertex[_triplets[3*triplet+2]], 0);
-    newresampler::Triangle TRI_noDEF(_CPgrid.get_coord(_triplets[3*triplet]),
-                                     _CPgrid.get_coord(_triplets[3*triplet+1]),
-                                     _CPgrid.get_coord(_triplets[3*triplet+2]),0);
+    std::vector<int> id = { _triplets[3*triplet], _triplets[3*triplet+1], _triplets[3*triplet+2] };
+
+    newresampler::Point v0 = _CPgrid.get_coord(id[0]);
+    newresampler::Point v1 = _CPgrid.get_coord(id[1]);
+    newresampler::Point v2 = _CPgrid.get_coord(id[2]);
+
+    vertex[id[0]] = (*ROTATIONS)[id[0]] * _labels[labelA];
+    vertex[id[1]] = (*ROTATIONS)[id[1]] * _labels[labelB];
+    vertex[id[2]] = (*ROTATIONS)[id[2]] * _labels[labelC];
+
+    newresampler::Triangle TRI(vertex[id[0]],
+                               vertex[id[1]],
+                               vertex[id[2]], 0);
+    newresampler::Triangle TRI_noDEF(v0,v1,v2,0);
+
+    double likelihood = triplet_likelihood(triplet,id[0],id[1],id[2],vertex[id[0]],vertex[id[1]],vertex[id[2]]);
 
     // only estimate cost if it doesn't cause folding
     if((TRI.normal() | TRI_noDEF.normal()) < 0)
@@ -311,8 +321,13 @@ double NonLinearSRegDiscreteCostFunction::computeTripletCost(int triplet, int la
     }
 
     if (abs(cost) < 1e-8) cost = 0.0;
+    if(_debug)
+    {
+        sumlikelihood += likelihood;
+        sumregcost += weight * _reglambda * MISCMATHS::pow(cost,_rexp);
+    }
 
-    return weight * _reglambda * MISCMATHS::pow(cost,_rexp); // normalise to try and ensure equivalent lambda for each resolution level
+    return likelihood + weight * _reglambda * MISCMATHS::pow(cost,_rexp); // normalise to try and ensure equivalent lambda for each resolution level
 }
 
 double NonLinearSRegDiscreteCostFunction::computePairwiseCost(int pair, int labelA, int labelB){
@@ -502,6 +517,31 @@ void UnivariateNonLinearSRegDiscreteCostFunction::get_source_data() {
     resample_weights();
 }
 
+void UnivariateNonLinearSRegDiscreteCostFunction::get_target_data(int node, const NEWMAT::Matrix& PtROTATOR) {
+
+    _targetdata[node].clear();
+    _targetdata[node].resize(_sourceinrange[node].size());
+
+    #pragma omp parallel for
+    for(unsigned int i = 0; i < _sourceinrange[node].size(); i++)
+    {
+        newresampler::Point tmp = PtROTATOR * _SOURCE.get_coord(_sourceinrange[node][i]);
+
+        newresampler::Triangle closest_triangle = targettree->get_closest_triangle(tmp);
+
+        newresampler::Point v0 = closest_triangle.get_vertex_coord(0),
+                            v1 = closest_triangle.get_vertex_coord(1),
+                            v2 = closest_triangle.get_vertex_coord(2);
+                        int n0 = closest_triangle.get_vertex_no(0),
+                            n1 = closest_triangle.get_vertex_no(1),
+                            n2 = closest_triangle.get_vertex_no(2);
+
+        _targetdata[node][i] = newresampler::barycentric_weight(v0, v1, v2, tmp,
+                                                                FEAT->get_ref_val(1, n0+1),
+                                                                FEAT->get_ref_val(1, n1+1),
+                                                                FEAT->get_ref_val(1, n2+1));
+    }
+}
 double UnivariateNonLinearSRegDiscreteCostFunction::computeUnaryCost(int node, int label){
 
     NEWMAT::Matrix ROT = estimate_rotation_matrix(_CPgrid.get_coord(node),(*ROTATIONS)[node] * _labels[label]); // this Matrix will rotate control point k to the label
@@ -521,32 +561,60 @@ double UnivariateNonLinearSRegDiscreteCostFunction::computeUnaryCost(int node, i
 void MultivariateNonLinearSRegDiscreteCostFunction::initialize(int numNodes, int numLabels, int numPairs, int numTriplets)
 {
     NonLinearSRegDiscreteCostFunction::initialize(numNodes, numLabels,numPairs,numTriplets);
-    _sourcedata.clear(); _sourcedata.resize(_CPgrid.nvertices(), vector<double> ());
+    _sourcedata.clear(); _sourcedata.resize(_SOURCE.nvertices(), vector<double> ());
     _sourceinrange.clear(); _sourceinrange.resize(_CPgrid.nvertices(), vector<int> ());
-    _targetdata.clear(); _targetdata.resize(_CPgrid.nvertices(), vector<double> ());
-    _weights.clear(); _weights.resize(_CPgrid.nvertices(), vector<double> ());
+    _targetdata.clear(); _targetdata.resize(_SOURCE.nvertices(), vector<double> ());
+    _weights.clear(); _weights.resize(_SOURCE.nvertices(), vector<double> ());
 }
 
 void MultivariateNonLinearSRegDiscreteCostFunction::get_source_data() {
 
-    for(auto& i : _sourcedata) i.clear();
+    for (auto &i: _sourcedata) i.clear();
+
+    //#pragma omp parallel for
+    for (int i = 0; i < _SOURCE.nvertices(); i++)
+    {
+        for (int k = 0; k < _CPgrid.nvertices(); k++)
+            if (within_controlpt_range(k, i))
+                _sourceinrange[k].push_back(i);
+
+        for (int d = 1; d <= FEAT->get_dim(); d++)
+        {
+            _sourcedata[i].push_back(FEAT->get_input_val(d, i + 1));
+            if (_HIGHREScfweight.Nrows() >= d)
+                _weights[i].emplace_back(_HIGHREScfweight(d, i + 1));
+            else
+                _weights[i].emplace_back(1.0);
+        }
+    }
+    resample_weights();
+}
+
+void MultivariateNonLinearSRegDiscreteCostFunction::get_target_data(int node, const NEWMAT::Matrix& PtROTATOR) {
 
     #pragma omp parallel for
-    for (int k = 0; k < _CPgrid.nvertices(); k++)
-        for (int i = 0; i < _SOURCE.nvertices(); i++)
-            if (within_controlpt_range(k, i))
-            {
-                _sourceinrange[k].push_back(i);
-                for (int d = 1; d <= FEAT->get_dim(); d++)
-                {
-                    _sourcedata[k].push_back(FEAT->get_input_val(d, k + 1));
-                    if (_HIGHREScfweight.Nrows() >= d)
-                        _weights[k].emplace_back(_HIGHREScfweight(d, k + 1));
-                    else
-                        _weights[k].emplace_back(1.0);
-                }
-            }
-    resample_weights();
+    for(unsigned int i = 0; i < _sourceinrange[node].size(); i++)
+    {
+        _targetdata[_sourceinrange[node][i]].clear();
+        _targetdata[_sourceinrange[node][i]].resize(FEAT->get_dim());
+
+        newresampler::Point tmp = PtROTATOR * _SOURCE.get_coord(_sourceinrange[node][i]);
+
+        newresampler::Triangle closest_triangle = targettree->get_closest_triangle(tmp);
+
+        newresampler::Point v0 = closest_triangle.get_vertex_coord(0),
+                            v1 = closest_triangle.get_vertex_coord(1),
+                            v2 = closest_triangle.get_vertex_coord(2);
+                        int n0 = closest_triangle.get_vertex_no(0),
+                            n1 = closest_triangle.get_vertex_no(1),
+                            n2 = closest_triangle.get_vertex_no(2);
+
+        for(int dim = 0; dim < FEAT->get_dim(); ++dim)
+            _targetdata[_sourceinrange[node][i]][dim] = newresampler::barycentric_weight(v0, v1, v2, tmp,
+                                                                                        FEAT->get_ref_val(dim+1, n0+1),
+                                                                                        FEAT->get_ref_val(dim+1, n1+1),
+                                                                                        FEAT->get_ref_val(dim+1, n2+1));
+    }
 }
 
 double MultivariateNonLinearSRegDiscreteCostFunction::computeUnaryCost(int node, int label){
@@ -555,21 +623,187 @@ double MultivariateNonLinearSRegDiscreteCostFunction::computeUnaryCost(int node,
 
     get_target_data(node,estimate_rotation_matrix(_CPgrid.get_coord(node),(*ROTATIONS)[node] * _labels[label]));
 
-    for(int i = 0; i < _sourceinrange[node].size(); ++i)
-        for(int dim = 0; dim < FEAT->get_dim(); ++dim)
-        {
-            int offset = dim * FEAT->get_dim();
-            cost += sim.get_sim_for_min({_sourcedata[node].begin() + offset, _sourcedata[node].begin() + offset+FEAT->get_dim()-1 },
-                                        {_targetdata[node].begin() + offset, _targetdata[node].begin() + offset+FEAT->get_dim()-1 },
-                                        {_weights[node].begin() + offset,_weights[node].begin() + offset+FEAT->get_dim()-1 });
-        }
+    #pragma omp parallel for
+    for(int i = 0; i < _sourceinrange[node].size(); ++i) {
+        double feature_cost = sim.get_sim_for_min(_sourcedata[_sourceinrange[node][i]], _targetdata[_sourceinrange[node][i]],
+                                                 _weights[_sourceinrange[node][i]]);
+        #pragma omp critical
+        cost += feature_cost;
+    }
 
-    if(!_sourceinrange[node].empty()) cost /= (_sourceinrange[node].size() * FEAT->get_dim());
+    if(!_sourceinrange[node].empty()) cost /= (_sourceinrange[node].size());
 
     if(_simmeasure==1 || _simmeasure==2)
         return AbsoluteWeights(node + 1) * cost;
     else
         return -AbsoluteWeights(node + 1) * cost;
+}
+
+//================================Triangle-based cost calculation Non Linear SURFACE CLASSES===========================================================================//
+void HOUnivariateNonLinearSRegDiscreteCostFunction::initialize(int numNodes, int numLabels, int numPairs, int numTriplets) {
+        NonLinearSRegDiscreteCostFunction::initialize(numNodes, numLabels, numPairs, numTriplets);
+        _sourcedata.clear(); _sourcedata.resize(_CPgrid.ntriangles());
+        _sourceinrange.clear(); _sourceinrange.resize(_CPgrid.ntriangles());
+        _targetdata.clear(); _targetdata.resize(_CPgrid.ntriangles());
+        _weights.clear(); _weights.resize(_CPgrid.ntriangles());
+}
+
+void HOUnivariateNonLinearSRegDiscreteCostFunction::get_source_data() {
+
+    for(auto& v : _sourcedata) v.clear();
+
+    newresampler::Octree cp_tree(_CPgrid);
+
+    for(int i = 0; i < _SOURCE.nvertices(); ++i)
+    {
+        int closest_triangle = cp_tree.get_closest_triangle(_SOURCE.get_coord(i)).get_no();
+        _sourceinrange[closest_triangle].push_back(i);
+        _sourcedata[closest_triangle].push_back(FEAT->get_input_val(1, i + 1));
+        if(_HIGHREScfweight.Nrows()>=1)
+            _weights[closest_triangle].push_back(_HIGHREScfweight(1, i + 1));
+        else
+            _weights[closest_triangle].push_back(1.0);
+    }
+    resample_weights();
+}
+
+void HOUnivariateNonLinearSRegDiscreteCostFunction::get_target_data(int triplet, const newresampler::Point& new_CP0, const newresampler::Point& new_CP1, const newresampler::Point& new_CP2){
+
+    _targetdata.at(triplet).clear();
+    _targetdata[triplet].resize(_sourceinrange[triplet].size());
+
+    newresampler::Point CP0 = _CPgrid.get_coord(_triplets[3*triplet]);
+    newresampler::Point CP1 = _CPgrid.get_coord(_triplets[3*triplet+1]);
+    newresampler::Point CP2 = _CPgrid.get_coord(_triplets[3*triplet+2]);
+
+    #pragma omp parallel for
+    for(int i = 0; i < _sourceinrange[triplet].size(); ++i)
+    {
+        newresampler::Point SP = _SOURCE.get_coord(_sourceinrange[triplet][i]);
+        newresampler::project_point(CP0, CP1, CP2, SP);
+        newresampler::Point tmp = newresampler::barycentric(CP0,CP1,CP2,SP,new_CP0,new_CP1,new_CP2);
+        tmp.normalize();
+        tmp *= RAD;
+
+        newresampler::Triangle closest_triangle = targettree->get_closest_triangle(tmp);
+
+        newresampler::Point v0 = closest_triangle.get_vertex_coord(0),
+                            v1 = closest_triangle.get_vertex_coord(1),
+                            v2 = closest_triangle.get_vertex_coord(2);
+                        int n0 = closest_triangle.get_vertex_no(0),
+                            n1 = closest_triangle.get_vertex_no(1),
+                            n2 = closest_triangle.get_vertex_no(2);
+
+        _targetdata.at(triplet).at(i) = newresampler::barycentric_weight(v0, v1, v2, tmp,
+                                                                   FEAT->get_ref_val(1, n0 + 1),
+                                                                   FEAT->get_ref_val(1, n1 + 1),
+                                                                   FEAT->get_ref_val(1, n2 + 1));
+    }
+}
+
+double HOUnivariateNonLinearSRegDiscreteCostFunction::triplet_likelihood(int triplet, int CP_id0, int CP_id1, int CP_id2,
+                                                                         const newresampler::Point& CP_def0,
+                                                                         const newresampler::Point& CP_def1,
+                                                                         const newresampler::Point& CP_def2) {
+
+    get_target_data(triplet, CP_def0, CP_def1, CP_def2);
+
+    double cost = (AbsoluteWeights(CP_id0+1) + AbsoluteWeights(CP_id1+1) + AbsoluteWeights(CP_id2+1)) / 3.0 *
+            sim.get_sim_for_min(_sourcedata[triplet], _targetdata[triplet],_weights[triplet]);
+
+    if(_simmeasure==1 || _simmeasure==2)
+        return cost;
+    else
+        return -cost;
+}
+
+void HOMultivariateNonLinearSRegDiscreteCostFunction::initialize(int numNodes,int numLabels, int numPairs, int numTriplets) {
+    NonLinearSRegDiscreteCostFunction::initialize(numNodes,numLabels,numPairs,numTriplets);
+    _sourcedata.clear(); _sourcedata.resize(_SOURCE.nvertices());
+    _sourceinrange.clear(); _sourceinrange.resize(_CPgrid.ntriangles());
+    _targetdata.clear(); _targetdata.resize(_SOURCE.nvertices());
+    _weights.clear(); _weights.resize(_SOURCE.nvertices());
+}
+
+void HOMultivariateNonLinearSRegDiscreteCostFunction::get_source_data() {
+
+    for(auto& v : _sourcedata) v.clear();
+
+    newresampler::Octree cp_tree(_CPgrid);
+
+    for (int i = 0; i < _SOURCE.nvertices(); ++i) {
+        _sourceinrange[cp_tree.get_closest_triangle(_SOURCE.get_coord(i)).get_no()].push_back(i);
+        for(int dim = 1; dim <= FEAT->get_dim(); ++dim)
+        {
+            _sourcedata[i].push_back(FEAT->get_input_val(dim, i+1));
+            if(_HIGHREScfweight.Nrows()>=dim)
+                _weights[i].push_back(_HIGHREScfweight(dim, i+1));
+            else
+                _weights[i].push_back(1.0);
+        }
+    }
+    resample_weights();
+}
+
+void HOMultivariateNonLinearSRegDiscreteCostFunction::get_target_data(int triplet, const newresampler::Point& new_CP0, const newresampler::Point& new_CP1, const newresampler::Point& new_CP2){
+
+    newresampler::Point CP0 = _CPgrid.get_coord(_triplets[3*triplet]);
+    newresampler::Point CP1 = _CPgrid.get_coord(_triplets[3*triplet+1]);
+    newresampler::Point CP2 = _CPgrid.get_coord(_triplets[3*triplet+2]);
+
+    #pragma omp parallel for
+    for(int i = 0; i < _sourceinrange[triplet].size(); ++i)
+    {
+        _targetdata[_sourceinrange[triplet][i]].clear();
+        _targetdata[_sourceinrange[triplet][i]].resize(FEAT->get_dim());
+
+        newresampler::Point SP = _SOURCE.get_coord(_sourceinrange[triplet][i]);
+        newresampler::project_point(CP0, CP1, CP2, SP);
+        newresampler::Point tmp = newresampler::barycentric(CP0,CP1,CP2,SP,new_CP0,new_CP1,new_CP2);
+        tmp.normalize();
+        tmp *= RAD;
+
+        newresampler::Triangle closest_triangle = targettree->get_closest_triangle(tmp);
+
+        newresampler::Point v0 = closest_triangle.get_vertex_coord(0),
+                            v1 = closest_triangle.get_vertex_coord(1),
+                            v2 = closest_triangle.get_vertex_coord(2);
+                        int n0 = closest_triangle.get_vertex_no(0),
+                            n1 = closest_triangle.get_vertex_no(1),
+                            n2 = closest_triangle.get_vertex_no(2);
+
+        for(int dim = 0; dim < FEAT->get_dim(); ++dim)
+            _targetdata[_sourceinrange[triplet][i]][dim] = newresampler::barycentric_weight(v0, v1, v2, tmp,
+                                                                         FEAT->get_ref_val(dim + 1, n0 + 1),
+                                                                         FEAT->get_ref_val(dim + 1, n1 + 1),
+                                                                         FEAT->get_ref_val(dim + 1, n2 + 1));
+    }
+}
+
+double HOMultivariateNonLinearSRegDiscreteCostFunction::triplet_likelihood(int triplet, int CP_id0, int CP_id1, int CP_id2,
+                                                                           const newresampler::Point& CP_def0,
+                                                                           const newresampler::Point& CP_def1,
+                                                                           const newresampler::Point& CP_def2) {
+    get_target_data(triplet, CP_def0, CP_def1, CP_def2);
+
+    double cost = 0.0;
+
+    #pragma omp parallel for
+    for(int i = 0; i < _sourceinrange[triplet].size(); ++i)
+    {
+        double feature_cost = sim.get_sim_for_min(_sourcedata[_sourceinrange[triplet][i]], _targetdata[_sourceinrange[triplet][i]], _weights[_sourceinrange[triplet][i]]);
+        #pragma omp critical
+        cost += feature_cost;
+    }
+
+    if(_sourceinrange[triplet].size() > 0) cost /= _sourceinrange[triplet].size();
+
+    if(_simmeasure==1 || _simmeasure==2)
+        return (AbsoluteWeights(CP_id0+1)+AbsoluteWeights(CP_id1+1)+AbsoluteWeights(CP_id2+1)) / 3.0 * cost;
+    else
+        return -(AbsoluteWeights(CP_id0+1)+AbsoluteWeights(CP_id1+1)+AbsoluteWeights(CP_id2+1)) / 3.0 * cost;
+
+    return cost;
 }
 
 } //namespace newmeshreg

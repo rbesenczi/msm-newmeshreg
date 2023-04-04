@@ -250,7 +250,6 @@ protected:
 };
 
 class NonLinearSRegDiscreteCostFunction: public SRegDiscreteCostFunction {
-
 protected:
     //---REGULARISER OPTIONS---//
     float _maxdist = 4.0;
@@ -286,22 +285,42 @@ public:
 };
 
 class UnivariateNonLinearSRegDiscreteCostFunction: public NonLinearSRegDiscreteCostFunction {
-
 public:
     UnivariateNonLinearSRegDiscreteCostFunction()= default;
     void initialize(int numNodes, int numLabels, int numPairs,int numTriplets) override;
     void get_source_data() override;
     double computeUnaryCost(int node, int label) override;
     void reset_target_data(int node) override { _targetdata[node].clear(); }
+    void get_target_data(int node, const NEWMAT::Matrix& PtROTATOR) override;
 };
 
 class MultivariateNonLinearSRegDiscreteCostFunction: public NonLinearSRegDiscreteCostFunction {
-
 public:
     MultivariateNonLinearSRegDiscreteCostFunction() = default;
     void initialize(int numNodes,int numLabels, int numPairs, int numTriplets = 0) override;
     void get_source_data() override;
     double computeUnaryCost(int node, int label) override;
+    void get_target_data(int node, const NEWMAT::Matrix& PtROTATOR) override;
+};
+
+class HOUnivariateNonLinearSRegDiscreteCostFunction: public UnivariateNonLinearSRegDiscreteCostFunction {
+public:
+    HOUnivariateNonLinearSRegDiscreteCostFunction() = default;
+    void initialize(int numNodes,int numLabels, int numPairs,int numTriplets = 0) override;
+    void get_source_data() override;
+    void get_target_data(int triplet, const newresampler::Point& new_CP0, const newresampler::Point& new_CP1, const newresampler::Point& new_CP2);
+    double computeUnaryCost(int node, int label) override { return 0; }
+    double triplet_likelihood(int, int, int, int, const newresampler::Point&, const newresampler::Point&, const newresampler::Point&) override;
+};
+
+class HOMultivariateNonLinearSRegDiscreteCostFunction: public MultivariateNonLinearSRegDiscreteCostFunction {
+public:
+    HOMultivariateNonLinearSRegDiscreteCostFunction() = default;
+    void initialize(int numNodes,int numLabels, int numPairs,int numTriplets = 0) override;
+    void get_source_data() override;
+    void get_target_data(int triplet, const newresampler::Point& new_CP0, const newresampler::Point& new_CP1, const newresampler::Point& new_CP2);
+    double computeUnaryCost(int node, int label) override { return 0; }
+    double triplet_likelihood(int, int, int, int, const newresampler::Point&, const newresampler::Point&, const newresampler::Point&) override;
 };
 
 } //namespace newmeshreg
