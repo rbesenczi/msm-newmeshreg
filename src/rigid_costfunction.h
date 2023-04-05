@@ -7,6 +7,7 @@
 #include "similarities.h"
 #include "newresampler/octree.h"
 #include "reg_tools.h"
+#include <omp.h>
 
 #ifdef HAS_HOCR
 #include "Fusion.h"

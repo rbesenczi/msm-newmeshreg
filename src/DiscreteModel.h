@@ -2,6 +2,7 @@
 #define NEWMESHREG_DISCRETEMODEL_H
 
 #include <memory>
+#include <omp.h>
 
 #include "DiscreteCostFunction.h"
 

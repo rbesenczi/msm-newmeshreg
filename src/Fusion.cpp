@@ -73,7 +73,6 @@ double Fusion::optimize(const std::shared_ptr<DiscreteModel>& energy, Reduction 
 
                 std::vector<TripletData> triplet_data(energy->getNumTriplets());
 
-                #pragma omp parallel for
                 for (int triplet = 0; triplet < energy->getNumTriplets(); ++triplet)
                 {
                     const int nodeA = triplets[triplet*3];

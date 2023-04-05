@@ -3,6 +3,7 @@
 
 #include "newresampler/octree.h"
 #include "miscmaths/histogram.h"
+#include <omp.h>
 
 namespace newmeshreg {
 

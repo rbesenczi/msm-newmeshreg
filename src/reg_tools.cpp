@@ -8,7 +8,7 @@ void Neighbourhood::update(const newresampler::Mesh& source, const newresampler:
     neighbours.clear();
     neighbours.resize(source.nvertices());
 
-    #pragma omp parallel for
+#pragma omp parallel for
     for(int index = 0; index < source.nvertices(); ++index)
     {
         newresampler::Point cr = source.get_coord(index);
@@ -139,10 +139,10 @@ void unfold(newresampler::Mesh& SOURCE) {
         foldedvertices.clear();
         foldinggradients.clear();
 
-        #pragma omp parallel for
+#pragma omp parallel for
         for (int i = 0; i < SOURCE.nvertices(); i++)
             if (check_for_intersections(i, SOURCE)) {
-                #pragma omp critical
+#pragma omp critical
                 foldedvertices.push_back(i);
             }
 
@@ -155,7 +155,7 @@ void unfold(newresampler::Mesh& SOURCE) {
             foldinggradients.emplace_back(spatialgradient(foldedvertice, SOURCE));
             // estimates gradient of triangle area for all vertices that are detected as folded
 
-        #pragma omp parallel for
+#pragma omp parallel for
         for (unsigned int i = 0; i < foldedvertices.size(); i++)
         {
             double current_stepsize = 1.0;
@@ -513,7 +513,7 @@ newresampler::Mesh calculate_strains(double fit_radius, const newresampler::Mesh
 
     if(PrincipalStretches) PrincipalStretches->ReSize(orig.nvertices(), 6);
 
-    #pragma omp parallel for
+#pragma omp parallel for
     for (int index = 0; index < orig.nvertices(); index++)
     {
         std::vector<int> kept;
@@ -827,7 +827,7 @@ void multivariate_histogram_normalization(MISCMATHS::BFMatrix& IN, MISCMATHS::BF
         NEWMAT::ColumnVector excluded_ref(REF.Ncols()); excluded_ref = 1;
         const int numbins = 256;
 
-        #pragma omp parallel for
+#pragma omp parallel for
         for (unsigned int i = 1; i <= IN.Ncols(); i++)
         {
             datain(i) = IN.Peek(d,i);
@@ -841,7 +841,7 @@ void multivariate_histogram_normalization(MISCMATHS::BFMatrix& IN, MISCMATHS::BF
             }
         }
 
-        #pragma omp parallel for
+#pragma omp parallel for
         for (unsigned int i = 1; i <= REF.Ncols(); i++)
         {
             dataref(i) = REF.Peek(d,i);
@@ -870,7 +870,7 @@ void multivariate_histogram_normalization(MISCMATHS::BFMatrix& IN, MISCMATHS::BF
 
         datain = Hist_in.getsourceData();
 
-        #pragma omp parallel for
+#pragma omp parallel for
         for (unsigned int i = 1; i <= IN.Ncols(); i++)
             IN.Set(d, i, datain(i));
 

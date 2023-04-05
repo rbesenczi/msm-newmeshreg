@@ -4,6 +4,7 @@
 #include <boost/variant/variant.hpp>
 #include <boost/variant/get.hpp>
 #include <memory>
+#include <omp.h>
 #include "featurespace.h"
 #include "newresampler/resampler.h"
 #include "similarities.h"
@@ -115,7 +116,7 @@ public:
         delete[] unarycosts;
         unarycosts = new double[numNodes*numLabels];
 
-        #pragma omp parallel for
+#pragma omp parallel for
         for (int i = 0; i < numLabels; i++)
             for (int j = 0; j < numNodes; j++)
                 unarycosts[i * numNodes + j] = unaryenergies[j][i];
@@ -185,7 +186,6 @@ public:
 
     virtual void resample_weights(){}
     virtual void get_source_data(){}
-    virtual void reset_target_data(int){}
     virtual double triplet_likelihood(int, int, int, int, const newresampler::Point&, const newresampler::Point&, const newresampler::Point &){ return 0; }
 
 protected:
@@ -286,18 +286,17 @@ public:
 
 class UnivariateNonLinearSRegDiscreteCostFunction: public NonLinearSRegDiscreteCostFunction {
 public:
-    UnivariateNonLinearSRegDiscreteCostFunction()= default;
-    void initialize(int numNodes, int numLabels, int numPairs,int numTriplets) override;
+    UnivariateNonLinearSRegDiscreteCostFunction() = default;
+    void initialize(int numNodes, int numLabels, int numPairs, int numTriplets) override;
     void get_source_data() override;
     double computeUnaryCost(int node, int label) override;
-    void reset_target_data(int node) override { _targetdata[node].clear(); }
     void get_target_data(int node, const NEWMAT::Matrix& PtROTATOR) override;
 };
 
 class MultivariateNonLinearSRegDiscreteCostFunction: public NonLinearSRegDiscreteCostFunction {
 public:
     MultivariateNonLinearSRegDiscreteCostFunction() = default;
-    void initialize(int numNodes,int numLabels, int numPairs, int numTriplets = 0) override;
+    void initialize(int numNodes, int numLabels, int numPairs, int numTriplets) override;
     void get_source_data() override;
     double computeUnaryCost(int node, int label) override;
     void get_target_data(int node, const NEWMAT::Matrix& PtROTATOR) override;
@@ -306,7 +305,7 @@ public:
 class HOUnivariateNonLinearSRegDiscreteCostFunction: public UnivariateNonLinearSRegDiscreteCostFunction {
 public:
     HOUnivariateNonLinearSRegDiscreteCostFunction() = default;
-    void initialize(int numNodes,int numLabels, int numPairs,int numTriplets = 0) override;
+    void initialize(int numNodes, int numLabels, int numPairs, int numTriplets) override;
     void get_source_data() override;
     void get_target_data(int triplet, const newresampler::Point& new_CP0, const newresampler::Point& new_CP1, const newresampler::Point& new_CP2);
     double computeUnaryCost(int node, int label) override { return 0; }
@@ -316,7 +315,7 @@ public:
 class HOMultivariateNonLinearSRegDiscreteCostFunction: public MultivariateNonLinearSRegDiscreteCostFunction {
 public:
     HOMultivariateNonLinearSRegDiscreteCostFunction() = default;
-    void initialize(int numNodes,int numLabels, int numPairs,int numTriplets = 0) override;
+    void initialize(int numNodes, int numLabels, int numPairs, int numTriplets) override;
     void get_source_data() override;
     void get_target_data(int triplet, const newresampler::Point& new_CP0, const newresampler::Point& new_CP1, const newresampler::Point& new_CP2);
     double computeUnaryCost(int node, int label) override { return 0; }

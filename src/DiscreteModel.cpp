@@ -162,7 +162,7 @@ vector<newresampler::Point> SRegDiscreteModel::rescale_sampling_grid() {
 
     if(m_scale >= 0.25)
     {
-        #pragma omp parallel for
+#pragma omp parallel for
         for (int i = 0; i < m_samples.size(); i++)
         {
             newresampler::Point newsample = centre + (centre - m_samples[i]) * m_scale;
@@ -206,7 +206,7 @@ void NonLinearSRegDiscreteModel::estimate_triplets() {
     m_num_triplets = m_CPgrid.ntriangles();
     triplets = new int[m_num_triplets * 3];
 
-    #pragma omp parallel for
+#pragma omp parallel for
     for(int i = 0; i < m_CPgrid.ntriangles(); i++)
     {
         int node_ids[3] = {m_CPgrid.get_triangle(i).get_vertex_no(0),
@@ -243,7 +243,7 @@ void NonLinearSRegDiscreteModel::get_rotations(vector<NEWMAT::Matrix>& ROT) {
     ROT.resize(m_CPgrid.nvertices());
     newresampler::Point ci = m_samplinggrid.get_coord(m_centroid);
 
-    #pragma omp parallel for
+#pragma omp parallel for
     for (int k = 0; k < m_CPgrid.nvertices(); k++)
         ROT[k] = estimate_rotation_matrix(ci, m_CPgrid.get_coord(k));
 }
@@ -300,7 +300,7 @@ void NonLinearSRegDiscreteModel::applyLabeling(int* dlabels) {
     // rotate sampling points to overlap with control point transform grid point to new position given by label
     if (dlabels)
     {
-        #pragma omp parallel for
+#pragma omp parallel for
         for (int i = 0; i < m_CPgrid.nvertices(); i++)
             m_CPgrid.set_coord(i, m_ROT[i] * m_labels[dlabels[i]]);
     }
