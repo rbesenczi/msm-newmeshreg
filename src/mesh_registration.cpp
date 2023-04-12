@@ -430,6 +430,7 @@ void Mesh_registration::run_discrete_opt(newresampler::Mesh& source) {
                        targetmesh = model->get_TARGET(),
                        sourcetmp = source;
     int _itersforlevel = boost::get<int>(PARAMETERS.find("iters")->second);
+    //int _itersforlevel = std::get<int>(PARAMETERS.find("iters")->second);
     int numNodes = model->getNumNodes(), iter = 1;
     double energy = 0, newenergy = 0;
 
