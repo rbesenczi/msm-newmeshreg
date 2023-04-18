@@ -76,10 +76,10 @@ newresampler::Mesh featurespace::initialize(int ico, vector<newresampler::Mesh> 
         else
             EXCL.push_back(std::shared_ptr<newresampler::Mesh>());
 
-        newresampler::Mesh tmp = newresampler::metric_resample(IN[i], icotmp, EXCL[i]);
+        newresampler::Mesh tmp = newresampler::metric_resample(IN[i], icotmp, _nthreads, EXCL[i]);
 
         if (_sigma_in[i] > 0)
-            tmp = newresampler::smooth_data(tmp, tmp, _sigma_in[i], EXCL[i]);
+            tmp = newresampler::smooth_data(tmp, tmp, _sigma_in[i], _nthreads, EXCL[i]);
 
         DATA[i] = std::make_shared<MISCMATHS::FullBFMatrix>(tmp.get_pvalues());
     }

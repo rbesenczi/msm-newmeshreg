@@ -149,8 +149,8 @@ void SRegDiscreteCostFunction::set_parameters(myparam& ALLPARAMS){
 newresampler::Mesh SRegDiscreteCostFunction::project_anatomical() {
 
     newresampler::Mesh _aICOtrans = _aICO;
-    barycentric_mesh_interpolation(_aICOtrans,_ORIG,_SOURCE);
-    return newresampler::project_mesh(_aICOtrans,_TARGEThi,_aTARGET);
+    barycentric_mesh_interpolation(_aICOtrans,_ORIG,_SOURCE, _threads);
+    return newresampler::project_mesh(_aICOtrans,_TARGEThi,_aTARGET, _threads);
 }
 
 void SRegDiscreteCostFunction::reset_anatomical(const string &outdir, int iter) {
@@ -163,7 +163,6 @@ void SRegDiscreteCostFunction::reset_anatomical(const string &outdir, int iter) 
         _aSOURCEtrans = project_anatomical();
         MAXstrain = 0.0;
 
-        #pragma omp parallel for
         for (int i = 0; i < _aSOURCE.ntriangles(); i++)
             strainstmp(i + 1) = calculate_triangular_strain(i, _aSOURCE, _aSOURCEtrans, _mu, _kappa);
 
@@ -469,7 +468,6 @@ void NonLinearSRegDiscreteCostFunction::resample_weights(){
     AbsoluteWeights.ReSize(_SOURCE.nvertices());
     AbsoluteWeights = 0;
 
-    #pragma omp parallel for
     for (int k = 1; k <= _SOURCE.nvertices(); k++)
     {
         double maxweight = std::numeric_limits<double>::lowest();
@@ -482,7 +480,7 @@ void NonLinearSRegDiscreteCostFunction::resample_weights(){
 
     newresampler::Mesh tmp = _SOURCE;
     tmp.set_pvalues(AbsoluteWeights);
-    AbsoluteWeights = newresampler::metric_resample(tmp, _CPgrid).get_pvalues();
+    AbsoluteWeights = newresampler::metric_resample(tmp, _CPgrid, _threads).get_pvalues();
 }
 
 void NonLinearSRegDiscreteCostFunction::get_target_data(int node, const NEWMAT::Matrix& PtROTATOR) {
@@ -490,7 +488,7 @@ void NonLinearSRegDiscreteCostFunction::get_target_data(int node, const NEWMAT::
     _targetdata[node].clear();
     _targetdata[node].resize(_sourceinrange[node].size() * FEAT->get_dim());
 
-    #pragma omp parallel for
+    #pragma omp parallel for num_threads(_threads)
     for(unsigned int i = 0; i < _sourceinrange[node].size(); i++)
     {
         newresampler::Point tmp = PtROTATOR * _SOURCE.get_coord(_sourceinrange[node][i]);
@@ -526,7 +524,7 @@ void UnivariateNonLinearSRegDiscreteCostFunction::get_source_data() {
 
     for (auto& i : _sourcedata) i.clear();
 
-    #pragma omp parallel for
+    #pragma omp parallel for num_threads(_threads)
     for (int k = 0; k < _CPgrid.nvertices(); k++)
         for (int i = 0; i < _SOURCE.nvertices(); i++)
             if (within_controlpt_range(k, i))
@@ -546,7 +544,7 @@ void UnivariateNonLinearSRegDiscreteCostFunction::get_target_data(int node, cons
     _targetdata[node].clear();
     _targetdata[node].resize(_sourceinrange[node].size());
 
-    #pragma omp parallel for
+    #pragma omp parallel for num_threads(_threads)
     for(unsigned int i = 0; i < _sourceinrange[node].size(); i++)
     {
         newresampler::Point tmp = PtROTATOR * _SOURCE.get_coord(_sourceinrange[node][i]);
@@ -615,7 +613,7 @@ void MultivariateNonLinearSRegDiscreteCostFunction::get_source_data() {
 
 void MultivariateNonLinearSRegDiscreteCostFunction::get_target_data(int node, const NEWMAT::Matrix& PtROTATOR) {
 
-    #pragma omp parallel for
+    #pragma omp parallel for num_threads(_threads)
     for(unsigned int i = 0; i < _sourceinrange[node].size(); i++)
     {
         _targetdata[_sourceinrange[node][i]].clear();
@@ -699,7 +697,7 @@ void HOUnivariateNonLinearSRegDiscreteCostFunction::get_target_data(int triplet,
     newresampler::Point CP1 = _CPgrid.get_coord(_triplets[3*triplet+1]);
     newresampler::Point CP2 = _CPgrid.get_coord(_triplets[3*triplet+2]);
 
-    #pragma omp parallel for
+    #pragma omp parallel for num_threads(_threads)
     for(int i = 0; i < _sourceinrange[triplet].size(); ++i)
     {
         newresampler::Point SP = _SOURCE.get_coord(_sourceinrange[triplet][i]);
@@ -778,7 +776,7 @@ void HOMultivariateNonLinearSRegDiscreteCostFunction::get_target_data(int triple
     newresampler::Point CP1 = _CPgrid.get_coord(_triplets[3*triplet+1]);
     newresampler::Point CP2 = _CPgrid.get_coord(_triplets[3*triplet+2]);
 
-    #pragma omp parallel for
+    #pragma omp parallel for num_threads(_threads)
     for(int i = 0; i < _sourceinrange[triplet].size(); ++i)
     {
         _targetdata[_sourceinrange[triplet][i]].clear();

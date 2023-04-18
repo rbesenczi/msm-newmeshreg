@@ -119,6 +119,7 @@ void Mesh_registration::initialize_level(int current_lvl) {
     FEAT->intensitynormalize(_IN, _cut); // matches the intensities of the source to the target (will rescale all to the top feature of the target if scale is true)
     FEAT->resamplingmethod(_dataInterpolator);
     FEAT->is_sparse(_issparse);
+    FEAT->set_nthreads(_numthreads);
     SPH_orig = FEAT->initialize(_genesis[current_lvl], MESHES, _exclude);  // downsamples and smooths data, creates and exclusion mask if exclude is true
     SPHin_CFWEIGHTING = downsample_cfweighting(_sigma_in[current_lvl], SPH_orig, IN_CFWEIGHTING, FEAT->get_input_excl());
     SPHref_CFWEIGHTING = downsample_cfweighting(_sigma_ref[current_lvl], SPH_orig, REF_CFWEIGHTING, FEAT->get_reference_excl());
@@ -164,7 +165,7 @@ void Mesh_registration::initialize_level(int current_lvl) {
             std::vector<std::vector<int>> ANAT_face_neighbourhood;
             std::vector<std::map<int,double>> ANAT_to_CP_baryweights;
             newresampler::Mesh aICO = resample_anatomy(CONTROL, ANAT_to_CP_baryweights, ANAT_face_neighbourhood, current_lvl);
-            newresampler::Mesh ANAT_target = newresampler::surface_resample(ref_anat,MESHES[1],aICO);
+            newresampler::Mesh ANAT_target = newresampler::surface_resample(ref_anat,MESHES[1],aICO, _numthreads);
             model->set_anatomical_meshspace(aICO, ANAT_target, aICO, ANAT_orig);
             model->set_anatomical_neighbourhood(ANAT_to_CP_baryweights, ANAT_face_neighbourhood);
         }
@@ -257,7 +258,7 @@ newresampler::Mesh Mesh_registration::resample_anatomy(const newresampler::Mesh&
         }
     }
 
-    ANAT_orig = newresampler::surface_resample(in_anat,MESHES[0],ANAT_ico);
+    ANAT_orig = newresampler::surface_resample(in_anat,MESHES[0],ANAT_ico, _numthreads);
 
     return ANAT_ico;
 }
@@ -273,11 +274,11 @@ NEWMAT::Matrix Mesh_registration::downsample_cfweighting(double sigma,
         if (!CFWEIGHTING)
             CFWEIGHTING = std::make_shared<newresampler::Mesh>(*EXCL);
 
-        newdata = newresampler::nearest_neighbour_interpolation(*CFWEIGHTING, SPH, EXCL).get_pvalues();
+        newdata = newresampler::nearest_neighbour_interpolation(*CFWEIGHTING, SPH, _numthreads ,EXCL).get_pvalues();
     }
     else if(CFWEIGHTING)
     {
-        newdata = newresampler::nearest_neighbour_interpolation(*CFWEIGHTING, SPH, EXCL).get_pvalues();
+        newdata = newresampler::nearest_neighbour_interpolation(*CFWEIGHTING, SPH, _numthreads, EXCL).get_pvalues();
     }
     else
     {
@@ -310,7 +311,7 @@ void Mesh_registration::evaluate() {
 
 void Mesh_registration::transform(const std::string& filename) {
 
-    barycentric_mesh_interpolation(MESHES[0], SPH_orig, SPH_reg);
+    barycentric_mesh_interpolation(MESHES[0], SPH_orig, SPH_reg, _numthreads);
     MESHES[0].save(filename + "sphere.reg" + _surfformat);
 }
 
@@ -330,9 +331,9 @@ void Mesh_registration::save_transformed_data(double sigma, const std::string& f
         newresampler::Mesh tmp;
 
         if (sigma < 1e-3)
-            tmp = newresampler::metric_resample(MESHES[0], MESHES[1], IN_EXCL);
+            tmp = newresampler::metric_resample(MESHES[0], MESHES[1], _numthreads, IN_EXCL);
         else
-            tmp = newresampler::smooth_data(MESHES[0], MESHES[1], sigma, IN_EXCL);
+            tmp = newresampler::smooth_data(MESHES[0], MESHES[1], sigma, _numthreads, IN_EXCL);
 
         DATA = std::make_shared<MISCMATHS::FullBFMatrix>(tmp.get_pvalues());
     }
@@ -357,9 +358,9 @@ void Mesh_registration::save_transformed_data(double sigma, const std::string& f
         newresampler::Mesh tmp;
 
         if (sigma < 1e-3)
-            tmp = newresampler::metric_resample(MESHES[0], MESHES[1], IN_EXCL);
+            tmp = newresampler::metric_resample(MESHES[0], MESHES[1], _numthreads, IN_EXCL);
         else
-            tmp = newresampler::smooth_data(MESHES[0], MESHES[1], sigma, IN_EXCL);
+            tmp = newresampler::smooth_data(MESHES[0], MESHES[1], sigma, _numthreads, IN_EXCL);
 
         DATA = std::make_shared<MISCMATHS::FullBFMatrix>(tmp.get_pvalues());
     }
@@ -377,7 +378,7 @@ void Mesh_registration::save_transformed_data(double sigma, const std::string& f
 
     if(_anat)
     {
-        newresampler::Mesh ANAT_TRANS = newresampler::project_mesh(MESHES[0], MESHES[1],ref_anat);
+        newresampler::Mesh ANAT_TRANS = newresampler::project_mesh(MESHES[0], MESHES[1],ref_anat, _numthreads);
         ANAT_TRANS.save(_outdir + "anat.reg.surf");
 
         in_anat.estimate_normals();
@@ -399,7 +400,7 @@ newresampler::Mesh Mesh_registration::project_CPgrid(newresampler::Mesh SPH_in, 
             if (transformed_mesh == MESHES[num]) std::cout << " WARNING:: transformed mesh has the same coordinates as the input mesh " << std::endl;
             else
             {
-                barycentric_mesh_interpolation(SPH_in, MESHES[num], transformed_mesh);
+                barycentric_mesh_interpolation(SPH_in, MESHES[num], transformed_mesh, _numthreads);
                 if (model) model->warp_CPgrid(MESHES[num], transformed_mesh);
                 // for tri clique model control grid is continously deformed
             }
@@ -412,8 +413,8 @@ newresampler::Mesh Mesh_registration::project_CPgrid(newresampler::Mesh SPH_in, 
         true_rescale(icotmp,RAD);
         // project datagrid though warp defined for the high resolution meshes (the equivalent to if registration is run one level at a time )
         newresampler::Mesh inorig = MESHES[0], incurrent = MESHES[0];
-        barycentric_mesh_interpolation(incurrent,icotmp,REG);
-        barycentric_mesh_interpolation(SPH_in,inorig,incurrent);
+        barycentric_mesh_interpolation(incurrent,icotmp,REG, _numthreads);
+        barycentric_mesh_interpolation(SPH_in,inorig,incurrent, _numthreads);
         if(model) model->warp_CPgrid(inorig, incurrent);
         if(_debug) incurrent.save(_outdir + "sphere.regLR.Res" + std::to_string(level) + ".surf");
     }
@@ -442,7 +443,7 @@ void Mesh_registration::run_discrete_opt(newresampler::Mesh& source) {
         {
             NEWMAT::Matrix ResampledRefWeight = SPHref_CFWEIGHTING;
             targetmesh.set_pvalues(ResampledRefWeight);
-            ResampledRefWeight = newresampler::metric_resample(targetmesh, source).get_pvalues();
+            ResampledRefWeight = newresampler::metric_resample(targetmesh, source, _numthreads).get_pvalues();
 
             CombinedWeight = combine_costfunction_weighting(SPHin_CFWEIGHTING, ResampledRefWeight);
         }
@@ -507,7 +508,7 @@ void Mesh_registration::run_discrete_opt(newresampler::Mesh& source) {
         // apply these choices in order to deform the CP grid
         newresampler::Mesh transformed_controlgrid = model->get_CPgrid();
         // use the control point updates to warp the source mesh
-        newresampler::barycentric_mesh_interpolation(source, controlgrid, transformed_controlgrid);
+        newresampler::barycentric_mesh_interpolation(source, controlgrid, transformed_controlgrid, _numthreads);
         controlgrid = transformed_controlgrid;
         // higher order frameowrk continuous deforms the CP grid whereas the original FW resets the grid each time
         unfold(transformed_controlgrid);

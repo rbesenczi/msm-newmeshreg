@@ -89,6 +89,7 @@ protected:
 
     std::string m_outdir;
     bool m_verbosity;
+    int _nthreads = 1;
 };
 
 class DiscreteModelDummy : public DiscreteModel {
@@ -206,7 +207,7 @@ public:
 
     virtual void reset_CPgrid(const newresampler::Mesh& grid) { m_CPgrid = grid; }
     virtual void warp_CPgrid(newresampler::Mesh& START, newresampler::Mesh& END) {
-        barycentric_mesh_interpolation(m_CPgrid,START,END);
+        barycentric_mesh_interpolation(m_CPgrid,START,END, _nthreads);
         unfold(m_CPgrid);
     }
 

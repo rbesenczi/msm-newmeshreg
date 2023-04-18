@@ -35,6 +35,7 @@ public:
     void is_sparse(bool sp) { _issparse = sp; }
     void intensitynormalize(bool norm, bool _exclcut) { _intensitynorm = norm; _cut = _exclcut; }
     void resamplingmethod(const std::string& method) { _resamplingmethod = method; }
+    void set_nthreads(int nthreads) { _nthreads = nthreads; }
 
     //---GET---//
     int get_dim() const { return DATA[0]->Nrows(); }
@@ -64,6 +65,7 @@ private:
     bool _issparse = false;  // notes that data is sparse
     bool _varnorm = false;  // performs online variance normalisation - maybe replace with non online version called during logtransformandnormalise()
     bool _cut = false;
+    int _nthreads = 1;
 
     //---PROCESSING---//
     void variance_normalise(std::shared_ptr<MISCMATHS::BFMatrix>&, std::shared_ptr<newresampler::Mesh>&);

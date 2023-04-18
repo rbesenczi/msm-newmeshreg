@@ -119,7 +119,6 @@ public:
         delete[] unarycosts;
         unarycosts = new double[numNodes*numLabels];
 
-        #pragma omp parallel for
         for (int i = 0; i < numLabels; i++)
             for (int j = 0; j < numNodes; j++)
                 unarycosts[i * numNodes + j] = unaryenergies[j][i];
@@ -241,7 +240,7 @@ protected:
     int _aRES = 0;
     int  _rmode = 0;
     int _iter = 0;
-    int _threads = 0;
+    int _threads = 1;
     float _k_exp = 0.0;
     double MAXstrain = 0.0;
     double strain95 = 0.0;

@@ -118,7 +118,6 @@ void Rigid_cost_function::update_similarity() {
     sim.set_input(FEAT->get_input_data());
     sim.set_reference(FEAT->get_reference_data());
 
-    #pragma omp parallel for
     for (int i = 0; i < SOURCE.nvertices(); i++)
         sim.calculate_sim_column_nbh(i);
 }
@@ -171,7 +170,6 @@ NEWMAT::ColumnVector Rigid_cost_function::Evaluate_SIMGradient(int i, const newr
 
 void Rigid_cost_function::rotate_in_mesh(double a1, double a2, double a3){
 
-    #pragma omp parallel for
     for (int index = 0; index < SOURCE.nvertices(); index++)
     {
         newresampler::Point cii = SOURCE.get_coord(index);
