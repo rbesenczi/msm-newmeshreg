@@ -207,7 +207,7 @@ void NonLinearSRegDiscreteCostFunction::initialize(int numNodes, int numLabels, 
 void NonLinearSRegDiscreteCostFunction::set_parameters(myparam& ALLPARAMS) {
 
     myparam::iterator it;
-    it=ALLPARAMS.find("maxdistortion");_maxdist=boost::get<float>(it->second);
+    //it=ALLPARAMS.find("maxdistortion");_maxdist=boost::get<float>(it->second);
     it=ALLPARAMS.find("exponent");_rexp=boost::get<float>(it->second);
     it=ALLPARAMS.find("weight");_dweight=boost::get<bool>(it->second);
     it=ALLPARAMS.find("anorm");_anorm=boost::get<bool>(it->second);
@@ -215,8 +215,8 @@ void NonLinearSRegDiscreteCostFunction::set_parameters(myparam& ALLPARAMS) {
     it=ALLPARAMS.find("shearmodulus");_mu=boost::get<float>(it->second);
     it=ALLPARAMS.find("bulkmodulus");_kappa=boost::get<float>(it->second);
     it=ALLPARAMS.find("kexponent");_k_exp=boost::get<float>(it->second);
-    it=ALLPARAMS.find("kNN");_kNN=boost::get<int>(it->second);
-    it=ALLPARAMS.find("pottsthreshold");_pottsthreshold=boost::get<float>(it->second);
+    //it=ALLPARAMS.find("kNN");_kNN=boost::get<int>(it->second);
+    //it=ALLPARAMS.find("pottsthreshold");_pottsthreshold=boost::get<float>(it->second);
     /*
     it=ALLPARAMS.find("maxdistortion");_maxdist=std::get<float>(it->second);
     it=ALLPARAMS.find("exponent");_rexp=std::get<float>(it->second);

@@ -224,7 +224,8 @@ protected:
 
     double MVDmax = 0.0; // max distance between CPs
     double _MEANANGLE = 0.0;
-    float _controlptrange = 0.0;
+    float _controlptrange = 1.0;
+
     double sumlikelihood = 0.0;
     double sumregcost = 0.0;
 

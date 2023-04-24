@@ -7,11 +7,10 @@ Mesh_registration::Mesh_registration(){
     FEAT = std::make_shared<featurespace>();
 }
 
-void Mesh_registration::run_multiresolutions(int levels, double sigma, const std::string& parameters) {
+void Mesh_registration::run_multiresolutions(const std::string& parameters) {
 
     parse_reg_options(parameters);
 
-    if(levels != 0) _resolutionlevels = levels;
     if(_verbose) std::cout << "Starting multiresolution with " << _resolutionlevels << " levels." << std::endl;
 
     for(int i = 0; i < _resolutionlevels; i++)
@@ -27,7 +26,7 @@ void Mesh_registration::run_multiresolutions(int levels, double sigma, const std
 
     transform(_outdir);
     saveSPH_reg(_outdir);
-    save_transformed_data(sigma, _outdir);
+    save_transformed_data(_outdir);
 }
 
 void Mesh_registration::set_input(const newresampler::Mesh& M) {
@@ -64,13 +63,13 @@ void Mesh_registration::set_reference(const std::string& M) {
     recentre(MESHES[1]);
     true_rescale(MESHES[1], RAD);
 }
-
+/*
 void Mesh_registration::set_template(const std::string &M) {
     TEMPLATE.load(M);
     recentre(TEMPLATE);
     true_rescale(TEMPLATE, RAD);
 }
-
+*/
 void Mesh_registration::set_anatomical(const std::string &M1, const std::string &M2) {
     _anat = true;
     in_anat.load(M1);
@@ -80,7 +79,7 @@ void Mesh_registration::set_anatomical(const std::string &M1, const std::string 
 void Mesh_registration::set_transformed(const std::string &M) {
     transformed_mesh.load(M);
     true_rescale(MESHES[1], RAD);
-    _initialise = true;
+    //_initialise = true;
 }
 
 void Mesh_registration::set_input_cfweighting(const std::string& E) {
@@ -96,28 +95,30 @@ void Mesh_registration::set_reference_cfweighting(const std::string& E) {
     true_rescale(*REF_CFWEIGHTING, RAD);
     _refcfw = true;
 }
-
+/*
 void Mesh_registration::set_training(const std::string& s, bool concat) {
     DATAlist = read_ascii_list(s);
     _concattraining = concat;
     _usetraining = true;
 }
-
+*/
 void Mesh_registration::initialize_level(int current_lvl) {
 
     check();
 
+    /*
     if (_usetraining)
         FEAT = std::make_shared<featurespace>(CMfile_in, DATAlist);
     else
-        FEAT = std::make_shared<featurespace>(CMfile_in, CMfile_ref);
+    */
+    FEAT = std::make_shared<featurespace>(CMfile_in, CMfile_ref);
 
     FEAT->set_smoothing_parameters({_sigma_in[current_lvl], _sigma_ref[current_lvl]});
     FEAT->set_cutthreshold(_threshold); // will also generate exclusion masks at the same mesh resolution as datagrid
     FEAT->logtransform(_logtransform);// if true logtransforms AND normalises
     FEAT->varnorm(_varnorm);// variance normalises
     FEAT->intensitynormalize(_IN, _cut); // matches the intensities of the source to the target (will rescale all to the top feature of the target if scale is true)
-    FEAT->resamplingmethod(_dataInterpolator);
+    //FEAT->resamplingmethod(_dataInterpolator);
     FEAT->is_sparse(_issparse);
     FEAT->set_nthreads(_numthreads);
     SPH_orig = FEAT->initialize(_genesis[current_lvl], MESHES, _exclude);  // downsamples and smooths data, creates and exclusion mask if exclude is true
@@ -152,9 +153,9 @@ void Mesh_registration::initialize_level(int current_lvl) {
 
         model = std::shared_ptr<SRegDiscreteModel>(new NonLinearSRegDiscreteModel(PARAMETERS));
 
-        if (_usetraining) model->set_L1path(_L1path);
+        //if (_usetraining) model->set_L1path(_L1path);
         if(_debug) model->set_debug();
-        model->set_featurespace(FEAT, _concattraining);
+        model->set_featurespace(FEAT);
         model->set_meshspace(SPH_orig, SPH_orig);
         newresampler::Mesh CONTROL = newresampler::make_mesh_from_icosa(_gridres[current_lvl]);
         newresampler::recentre(CONTROL);
@@ -315,7 +316,7 @@ void Mesh_registration::transform(const std::string& filename) {
     MESHES[0].save(filename + "sphere.reg" + _surfformat);
 }
 
-void Mesh_registration::save_transformed_data(double sigma, const std::string& filename) {
+void Mesh_registration::save_transformed_data(const std::string& filename) {
 
     if(_verbose) std::cout << "Saving and transforming data." << std::endl;
 
@@ -324,46 +325,42 @@ void Mesh_registration::save_transformed_data(double sigma, const std::string& f
     std::shared_ptr<MISCMATHS::BFMatrix> DATA, DATAREF;
     std::shared_ptr<newresampler::Mesh> IN_EXCL, REF_EXCL;
 
+    /*
     if(_usetraining)
     {
         set_data(CMfile_in,DATA,MESHES[0]);
 
         newresampler::Mesh tmp;
 
-        if (sigma < 1e-3)
-            tmp = newresampler::metric_resample(MESHES[0], MESHES[1], _numthreads, IN_EXCL);
-        else
-            tmp = newresampler::smooth_data(MESHES[0], MESHES[1], sigma, _numthreads, IN_EXCL);
+        tmp = newresampler::metric_resample(MESHES[0], MESHES[1], _numthreads, IN_EXCL);
 
         DATA = std::make_shared<MISCMATHS::FullBFMatrix>(tmp.get_pvalues());
     }
     else
     {
-        // binarize costfunction weights for use as exclusion masks during resampling
-        set_data(CMfile_in,DATA,MESHES[0]);
-        set_data(CMfile_ref,DATAREF,MESHES[1]);
+    */
+    // binarize costfunction weights for use as exclusion masks during resampling
+    set_data(CMfile_in,DATA,MESHES[0]);
+    set_data(CMfile_ref,DATAREF,MESHES[1]);
 
-        if(_exclude)
-        { // no longer necessary as EXCL masks aren't downsampled anymore? Could save from initialisation
-            IN_EXCL= std::make_shared<newresampler::Mesh>(create_exclusion(MESHES[0],_threshold[0],_threshold[1]));
-            REF_EXCL= std::make_shared<newresampler::Mesh>(create_exclusion(MESHES[1],_threshold[0],_threshold[1]));
-        }
-        if(_IN)
-        { // INTENSITY NORMALIZE
-            if(_verbose) std::cout << "Intensity normalise." << std::endl;
-            multivariate_histogram_normalization(*DATA,*DATAREF,IN_EXCL,REF_EXCL);
-        }
-
-        MESHES[0].set_pvalues(DATA->AsMatrix());
-        newresampler::Mesh tmp;
-
-        if (sigma < 1e-3)
-            tmp = newresampler::metric_resample(MESHES[0], MESHES[1], _numthreads, IN_EXCL);
-        else
-            tmp = newresampler::smooth_data(MESHES[0], MESHES[1], sigma, _numthreads, IN_EXCL);
-
-        DATA = std::make_shared<MISCMATHS::FullBFMatrix>(tmp.get_pvalues());
+    if(_exclude)
+    { // no longer necessary as EXCL masks aren't downsampled anymore? Could save from initialisation
+        IN_EXCL= std::make_shared<newresampler::Mesh>(create_exclusion(MESHES[0],_threshold[0],_threshold[1]));
+        REF_EXCL= std::make_shared<newresampler::Mesh>(create_exclusion(MESHES[1],_threshold[0],_threshold[1]));
     }
+    if(_IN)
+    { // INTENSITY NORMALIZE
+        if(_verbose) std::cout << "Intensity normalise." << std::endl;
+        multivariate_histogram_normalization(*DATA,*DATAREF,IN_EXCL,REF_EXCL);
+    }
+
+    MESHES[0].set_pvalues(DATA->AsMatrix());
+    newresampler::Mesh tmp;
+
+    tmp = newresampler::metric_resample(MESHES[0], MESHES[1], _numthreads, IN_EXCL);
+
+    DATA = std::make_shared<MISCMATHS::FullBFMatrix>(tmp.get_pvalues());
+    //}
 
     newresampler::Mesh TRANSFORMED = MESHES[1];
     std::shared_ptr<MISCMATHS::FullBFMatrix > pin = std::dynamic_pointer_cast<MISCMATHS::FullBFMatrix>(DATA);
@@ -529,81 +526,55 @@ void Mesh_registration::parse_reg_options(const std::string &parameters)
     Utilities::Option<std::vector<std::string>> optimizer(std::string("--opt"),costdefault,
                                                std::string("optimisation method. Choice of: RIGID, DISCRETE (default)"),
                                      false,Utilities::requires_argument);
-
     std::vector<int> intdefault;
     Utilities::Option<std::vector<int>> simval(std::string("--simval"), intdefault,
                                     std::string("code for determining which similarty measure is used to assess cost during registration: options are 1) SSD; 2) pearsons correlation (default); 3) NMI;)"),
                                false, Utilities::requires_argument);
-
     Utilities::Option<std::vector<int>> iterations(std::string("--it"), intdefault,
                                         std::string("number of iterations at each resolution (default -–it=3,3,3)"),
                                     false, Utilities::requires_argument);
-
     std::vector<float> floatdefault;
     Utilities::Option<std::vector<float>> sigma_in(std::string("--sigma_in"),floatdefault,
                                         std::string("smoothing parameter for input image (default --sigma_in=2,2,2)"),
                                     false, Utilities::requires_argument);
-
     Utilities::Option<std::vector<float>> sigma_ref(std::string("--sigma_ref"),  floatdefault,
                                          std::string("Sigma parameter - smoothing parameter for reference image  (set equal to sigma_in by default)"),
                                      false, Utilities::requires_argument);
-
     Utilities::Option<std::vector<float>> lambda(std::string("--lambda"),  floatdefault,
                                       std::string("Lambda parameter - controls contribution of regulariser "),
                                  false, Utilities::requires_argument);
-
     Utilities::Option<std::vector<int>> datagrid(std::string("--datagrid"),intdefault,
                                       std::string("DATA grid resolution (default --datagrid=5,5,5). If parameter = 0 then the native mesh is used."),
                                  false, Utilities::requires_argument);
-
     Utilities::Option<std::vector<int>> cpgrid(std::string("--CPgrid"),intdefault,
                                     std::string("Control point grid resolution (default --CPgrid=2,3,4)"),
                                false, Utilities::requires_argument);
-
     Utilities::Option< std::vector<int>> sampgrid(std::string("--SGgrid"),intdefault,
                                   std::string("Sampling grid resolution (default = 2 levels higher than the control point grid)"),
                                   false, Utilities::requires_argument);
     Utilities::Option<std::vector<int>> anatgrid(std::string("--anatgrid"),intdefault,
                                   std::string("Anatomical grid resolution (default = 2 levels higher than the control point grid)"),
                                   false, Utilities::requires_argument);
-
-    Utilities::Option< std::vector<int>> alpha_knn(std::string("--aKNN"),intdefault,
-                                        std::string("Number of neighbours for estimation of kNN graph and alpha entropy measure (default --aKNN=5,5,5)"),
-                                   false, Utilities::requires_argument);
-
     std::vector<float> cutthresholddefault(2,0); cutthresholddefault[1] = 0.0001;
     Utilities::Option< std::vector<float>> cutthreshold(std::string("--cutthr"),cutthresholddefault,
                                              std::string("Upper and lower thresholds for defining cut vertices (default --cutthr=0,0)"),
                                         false, Utilities::requires_argument);
-
-    Utilities::Option<std::string> meshinterpolationmethod(std::string("--mInt"), "BARY",
-                                                std::string("Method used for mesh interpolations, options: TPS or BARY (default)"),
-                                           false,Utilities::requires_argument);
-
-    Utilities::Option<std::string> datainterpolationmethod(std::string("--dInt"), "ADAP_BARY",
-                                                std::string("Method used for data interpolations, options: GAUSSIAN or ADAP_BARY (default)"),
-                                           false,Utilities::requires_argument);
 #ifdef HAS_HOCR
     Utilities::Option<int> regulariseroption(std::string("--regoption"), 1,
                                   std::string("Choose option for regulariser form lambda*weight*pow(cost,rexp). Where cost can be PAIRWISE or TRI-CLIQUE based. Options are: 1) PAIRWISE - penalising diffences in rotations of neighbouring points (default); 2) TRI_CLIQUE Angle deviation penalty (for spheres); 3) TRI_CLIQUE: Strain-based (for spheres);  4) TRI_CLIQUE Angle deviation penalty (for anatomy); 5) TRI_CLIQUE: Strain-based (for anatomy)"),
                                   false, Utilities::requires_argument);
-
     Utilities::Option<std::string> doptimizer(std::string("--dopt"),"FastPD",
                                    std::string("discrete optimisation implementation. Choice of: FastPD (default), HOCR (will reduce to QBPO for pairwise), ELC, ELC_approx"),
                               false,Utilities::requires_argument,false);
-
     Utilities::Option<bool> tricliquelikeihood(std::string("--triclique"), false,
                                     std::string("estimate similarity for triangular patches (rather than circular)"),
                                     false, Utilities::no_argument);
-
     Utilities::Option<float> shear(std::string("--shearmod"), 0.4,
                         std::string("shear modulus (default 0.4); for use with --regoptions 3 "),
                         false,Utilities::requires_argument);
-
     Utilities::Option<float> bulk(std::string("--bulkmod"), 1.6,
                        std::string("bulk mod (default 1.6); for use with --regoptions 3 "),
                        false,Utilities::requires_argument);
-
     Utilities::Option<float> grouplambda(std::string("--glambda_pairs"), 1,
                               std::string("scaling for pairwise term in greoup alignment"),
                               false,Utilities::requires_argument,false);
@@ -611,79 +582,48 @@ void Mesh_registration::parse_reg_options(const std::string &parameters)
                             std::string("exponent inside strain equation (default 2)"),
                             false, Utilities::requires_argument);
 #endif
-    Utilities::Option<float> expscaling(std::string("--scaleexp"), 1,
-                             std::string("Scaling for weight exponent (default 1.0)"),
-                             false,Utilities::requires_argument,false);
-
     Utilities::Option<float> regulariserexp(std::string("--regexp"), 2.0,
                                  std::string("Regulariser exponent 'rexp' (default 2.0)"),
                                  false,Utilities::requires_argument);
-
     Utilities::Option<bool> distweight(std::string("--weight"), false,
                             std::string("weight regulariser cost using areal distortion weighting"),
                             false, Utilities::no_argument);
-
     Utilities::Option<bool> anorm(std::string("--anorm"), false,
                        std::string("norm regulariser cost using mean angle (for HCP compatibility)"),
                        false, Utilities::no_argument);
-
     Utilities::Option<bool> rescale_labels(std::string("--rescaleL"), false,
                                 std::string("rescale label grid rather than using barycentres"),
                                 false, Utilities::no_argument);
-
-    Utilities::Option<float> maxdist(std::string("--maxdist"), 4,
-                          std::string("Set areal distortion threshold (default 4); for use with --regoptions 2 "),
-                          false,Utilities::requires_argument,false);
-
-    Utilities::Option<float> pottsenergy(std::string("--potts"),0.0,
-                              std::string("Use potts model for mrf regulariser (strain only thus far). Supply threshold value"),
-                              false, Utilities::requires_argument, false);
-
     Utilities::Option<float> controlptrange(std::string("--cprange"), 1.0,
                                  std::string("Range (as % control point spacing) of data samples (default 1) "),
                                  false,Utilities::requires_argument,false);
-
     Utilities::Option<bool> logtransform(std::string("--log"), false,
                               std::string("log transform and normalise the data"),
                               false, Utilities::no_argument);
-
     Utilities::Option<bool> intensitynormalize(std::string("--IN"), false,
                                     std::string("Normalize intensity ranges using histogram matching "),
                                     false, Utilities::no_argument);
-
     Utilities::Option<bool> intensitynormalizewcut(std::string("--INc"), false,
                                         std::string("Normalize intensity ranges using histogram matching excluding cut"),
                                         false, Utilities::no_argument);
-
     Utilities::Option<bool> variancenormalize(std::string("--VN"), false,
                                    std::string("Variance normalize data "),
                                    false, Utilities::no_argument);
-
-    Utilities::Option<bool> scaleintensity(std::string("--scale"), false,
-                                std::string("Scale intensity ranges of a features in multivariate data to be equal to that of the first (useful for multimodal contrasts)"),
-                                false, Utilities::no_argument);
-
     Utilities::Option<bool> exclude(std::string("--excl"), false,
                          std::string("Ignore the cut when resampling the data"),
                          false, Utilities::no_argument);
-
     Utilities::Option<bool> quartet(std::string("-Q"), false,
                          std::string("Estimate quartet low rank cost for group reg"),
                          false, Utilities::no_argument,false);
-
-    //---AFFINE OPTIONS---//
     Utilities::Option<float> affinestepsize(std::string("--stepsize"), 0.01,
                                  std::string("gradient stepping for affine optimisation (default 0.01)"),
                                  false, Utilities::requires_argument);
-
     Utilities::Option<float> gradsampling(std::string("--gradsampling"), 0.5,
                                std::string("Determines the finite distance spacing for the affine gradient calculation (default 0.5)"),
                                false,Utilities::requires_argument);
-
     Utilities::Option<int> threads(std::string("--numthreads"), 1,
-                        std::string("number of threads for tbb (default 1)"),
+                        std::string("number of threads for OpenMP (default 1)"),
                         false,Utilities::requires_argument);
-
     try {
         // must include all wanted options here (the order determines how
         // the help message is printed)
@@ -697,10 +637,7 @@ void Mesh_registration::parse_reg_options(const std::string &parameters)
         options.add(cpgrid);
         options.add(sampgrid);
         options.add(anatgrid);
-        options.add(alpha_knn);
         options.add(cutthreshold);
-        options.add(meshinterpolationmethod);
-        options.add(datainterpolationmethod);
 #ifdef HAS_HOCR
         options.add(regulariseroption);
         options.add(doptimizer);
@@ -710,19 +647,15 @@ void Mesh_registration::parse_reg_options(const std::string &parameters)
         options.add(grouplambda);
         options.add(kexponent);
 #endif
-        options.add(expscaling);
         options.add(regulariserexp);
         options.add(distweight);
         options.add(anorm);
         options.add(rescale_labels);
-        options.add(maxdist);
-        options.add(pottsenergy);
         options.add(controlptrange);
         options.add(logtransform);
         options.add(intensitynormalize);
         options.add(intensitynormalizewcut);
         options.add(variancenormalize);
-        options.add(scaleintensity);
         options.add(exclude);
         options.add(quartet);
         options.add(affinestepsize);
@@ -767,7 +700,6 @@ void Mesh_registration::parse_reg_options(const std::string &parameters)
         _sigma_in.resize(4,2); _sigma_in[2] = 3;_sigma_in[3] = 2;
         _sigma_ref.resize(4,2); _sigma_ref[2] = 1.5; _sigma_ref[3] = 1;
         _iters.resize(4,3); _iters[0] = 50;
-        _alpha_kNN.resize(cost.size(),5);
         _gridres.resize(4,0); _gridres[1] = 2; _gridres[2] = 3; _gridres[3] = 4;
         _anatres.resize(4,0); _anatres[1] = 4; _anatres[2] = 5; _anatres[3] = 6;
         _genesis.resize(4,4); _genesis[2] = 5; _genesis[3] = 6;
@@ -777,51 +709,39 @@ void Mesh_registration::parse_reg_options(const std::string &parameters)
     {
         cost = optimizer.value();
         _lambda = lambda.value();
-
         // now check for assignments and else set defaults
         if (simval.set()) _simval = simval.value();
         else _simval.resize(cost.size(), 2);
-
         if (iterations.set()) _iters = iterations.value();
         else _iters.resize(cost.size(), 3);
-
         if (sigma_in.set()) _sigma_in = sigma_in.value();
         else _sigma_in.resize(cost.size(), 2);
-
         if (sigma_ref.set()) _sigma_ref = sigma_ref.value();
         else _sigma_ref = _sigma_in;
-
         if (datagrid.set()) _genesis = datagrid.value();
         else _genesis.resize(cost.size(), 5);
-
         if (cpgrid.set()) _gridres = cpgrid.value();
         else
         {
             _gridres.resize(cost.size(), 2);
             for (unsigned int i = 1; i < cost.size(); i++) _gridres[i] = _gridres[i - 1] + 1;
         }
-
         if (anatgrid.set()) _anatres = anatgrid.value();
         else
         {
             _anatres.resize(cost.size(), 2);
             for (unsigned int i = 0; i < cost.size(); i++) _anatres[i] = _gridres[i] + 2;
         }
-
         if (sampgrid.set()) _sampres = sampgrid.value();
         else
         {
             _sampres.resize(cost.size());
             for (unsigned int i = 0; i < cost.size(); i++) _sampres[i] = _gridres[i] + 2;
         }
-
-        if (alpha_knn.set()) _alpha_kNN = alpha_knn.value();
-        else _alpha_kNN.resize(cost.size(), 5);
     }
 
     _resolutionlevels = cost.size();
     _logtransform = logtransform.value();
-    _scale = scaleintensity.value();
 #ifdef HAS_HOCR
     if(grouplambda.set())
     {
@@ -836,7 +756,7 @@ void Mesh_registration::parse_reg_options(const std::string &parameters)
     _k_exp=kexponent.value();
 #else
     _regmode=1;
-_discreteOPT="FastPD";
+    _discreteOPT="FastPD";
 #endif
     if(intensitynormalizewcut.set())
     {
@@ -851,15 +771,10 @@ _discreteOPT="FastPD";
     _varnorm=variancenormalize.value();
     _exclude=exclude.value();
     _quartet=quartet.value();
-    _meshInterpolator=meshinterpolationmethod.value();
-    _dataInterpolator=datainterpolationmethod.value();
     _weight=distweight.value();
     _regoption2norm=anorm.value();
-    _potts=pottsenergy.value();
     _threshold=cutthreshold.value();
-    _regscaling=expscaling.value();
     _regexp=regulariserexp.value();
-    _maxdist=maxdist.value();
     _cprange=controlptrange.value();
     _affinestepsize=affinestepsize.value();
     _affinegradsampling=gradsampling.value();
@@ -868,19 +783,36 @@ _discreteOPT="FastPD";
 
     if(_verbose)
     {
-        std::cout << "cost.size() " << cost.size() << " "; for(const auto& e : cost) std::cout << e << ' ';
-        std::cout << " iters "; for(const auto& e : _iters) std::cout << e << ' ';
-        std::cout << "lambda "; for(const auto& e : _lambda) std::cout << e << ' ';
-        std::cout << " sigmain "; for(const auto& e : _sigma_in) std::cout << e << ' ';
-        std::cout << " sigmaref "; for(const auto& e : _sigma_ref) std::cout << e << ' ';
-        std::cout << " datagrid "; for(const auto& e : _genesis) std::cout << e << ' ';
-        std::cout << " cp gridres "; for(const auto& e : _gridres) std::cout << e << ' ';
-        std::cout << " sp grid "; for(const auto& e : _sampres) std::cout << e << ' ';
-        std::cout << " alpha_knn "; for(const auto& e : _alpha_kNN) std::cout << e << ' ';
-        std::cout << " in parse options " << " _simval "; for(const auto& e : _simval) std::cout << e << ' ';
-             std::cout << " _scale " << _scale << " mesh interpolator " << _meshInterpolator <<
-             " discrete implementation " << _discreteOPT << " regoption " <<  _regmode <<
-             " potts " << _potts << std::endl;
+        std::cout << "\nParameters:\nOptimiser per level: ";
+        for(const auto& e : cost) std::cout << e << ' ';
+        std::cout << "\nSimilarity measure per level: "; for(const auto& e : _simval) std::cout << e << ' ';
+        std::cout << "\nMax iterations per level: "; for(const auto& e : _iters) std::cout << e << ' ';
+        std::cout << "\nLambda regulariser: "; for(const auto& e : _lambda) std::cout << e << ' ';
+        std::cout << "\nSigma for in data per level: "; for(const auto& e : _sigma_in) std::cout << e << ' ';
+        std::cout << "\nSigma for ref data per level: "; for(const auto& e : _sigma_ref) std::cout << e << ' ';
+        std::cout << "\nDatagrid resolution per level: "; for(const auto& e : _genesis) std::cout << e << ' ';
+        std::cout << "\nCP grid resolution per level "; for(const auto& e : _gridres) std::cout << e << ' ';
+        std::cout << "\nSampling grid resolution per level: "; for(const auto& e : _sampres) std::cout << e << ' ';
+        if (_anat) { std::cout << "\nAnatomical mesh resolution per level: "; for(const auto& e : _anatres) std::cout << e << ' '; }
+        if(cutthreshold.set()) { std::cout << "\nCut threshold: "; for(const auto& e : _threshold) std::cout << e << ' '; }
+        for(const auto& e : cost) if (e=="AFFINE" || e =="RIGID") {
+                std::cout << "\nRigid parameters: Affine step size: " << _affinestepsize
+                          << " Affine grad sampling: " << _affinegradsampling;
+                break;
+            }
+        if(tricliquelikeihood.set()) std::cout << "\nTriclique likelihood set.";
+        if(variancenormalize.set()) std::cout << "\nVariance normalise set.";
+        if(intensitynormalize.set()) std::cout << "\nIntensity normalise set.";
+        if(intensitynormalizewcut.set()) std::cout << "\nIntensity normalise with cut set.";
+        if(logtransform.set()) std::cout << "\nLogtransform set.";
+        if(rescale_labels.set()) std::cout << "\nRescale labels set.";
+        std::cout << "\nDiscrete implementation: " << _discreteOPT;
+        std::cout << "\nRegulariser: " <<  _regmode;
+        if(_regmode == 3 || _regmode == 5) std::cout << "\nShearmod: " << _shearmod << "; Bulkmod: " << _bulkmod << "; k_exponent: " << _k_exp;
+        std::cout << "\nRegulariser exponent: " <<  _regexp;
+        std::cout << "\nNumber of execution threads: " << _numthreads << "\n\n";
+
+        std::cout << std::endl;
     }
 
     if (_regmode > 1 && _discreteOPT == "FastPD")
@@ -905,8 +837,6 @@ _discreteOPT="FastPD";
         throw MeshregException("MeshREG ERROR:: config file parameter list lengths are inconsistent:--CPgrid");
     if ((int) _sampres.size() != _resolutionlevels)
         throw MeshregException("MeshREG ERROR:: config file parameter list lengths are inconsistent:--SGres");
-    if ((int) _alpha_kNN.size() != _resolutionlevels)
-        throw MeshregException("MeshREG ERROR:: config file parameter list lengths are inconsistent:--aKNN");
 }
 
 void Mesh_registration::fix_parameters_for_level(int i) {
@@ -926,16 +856,16 @@ void Mesh_registration::fix_parameters_for_level(int i) {
     PARAMETERS.insert(parameterPair("regularisermode", _regmode));
     PARAMETERS.insert(parameterPair("TriLikelihood", _tricliquelikeihood));
     PARAMETERS.insert(parameterPair("rescalelabels", _rescale_labels));
-    PARAMETERS.insert(parameterPair("maxdistortion", _maxdist));
+    //PARAMETERS.insert(parameterPair("maxdistortion", _maxdist));
     PARAMETERS.insert(parameterPair("shearmodulus", _shearmod));
     PARAMETERS.insert(parameterPair("bulkmodulus", _bulkmod));
-    PARAMETERS.insert(parameterPair("pottsthreshold", _potts));
+    //PARAMETERS.insert(parameterPair("pottsthreshold", _potts));
     PARAMETERS.insert(parameterPair("range", _cprange));
     PARAMETERS.insert(parameterPair("exponent", _regexp));
     PARAMETERS.insert(parameterPair("weight", _weight));
     PARAMETERS.insert(parameterPair("anorm", _regoption2norm));
     PARAMETERS.insert(parameterPair("scaling", _regscaling));
-    PARAMETERS.insert(parameterPair("kNN", _alpha_kNN[i]));
+    //PARAMETERS.insert(parameterPair("kNN", _alpha_kNN[i]));
     PARAMETERS.insert(parameterPair("verbosity", _verbose));
     PARAMETERS.insert(parameterPair("outdir", _outdir));
     PARAMETERS.insert(parameterPair("stepsize", _affinestepsize));

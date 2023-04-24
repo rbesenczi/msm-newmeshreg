@@ -34,7 +34,7 @@ public:
     void varnorm(bool norm) { _varnorm = norm; }
     void is_sparse(bool sp) { _issparse = sp; }
     void intensitynormalize(bool norm, bool _exclcut) { _intensitynorm = norm; _cut = _exclcut; }
-    void resamplingmethod(const std::string& method) { _resamplingmethod = method; }
+    //void resamplingmethod(const std::string& method) { _resamplingmethod = method; }
     void set_nthreads(int nthreads) { _nthreads = nthreads; }
 
     //---GET---//
@@ -57,7 +57,7 @@ private:
 
     std::string inorig;
     std::string reforig;
-    std::string _resamplingmethod;
+    //std::string _resamplingmethod;
 
     bool _logtransform = false;  // will log transform and normalise
     bool _intensitynorm = false; // will histogram match
