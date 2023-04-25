@@ -1,7 +1,5 @@
 #include "featurespace.h"
 
-using namespace std;
-
 namespace newmeshreg {
 
 featurespace::featurespace(const std::string& datain, const std::string& dataref) {
@@ -9,28 +7,6 @@ featurespace::featurespace(const std::string& datain, const std::string& dataref
     _fthreshold.resize(2,0.0);
     CMfile_in.push_back(datain);
     CMfile_in.push_back(dataref);
-}
-
-featurespace::featurespace(const std::string& datain, const std::vector<std::string>& datareflist) {
-    _sigma_in.push_back(5);
-    _fthreshold.resize(2,0.0);
-    CMfile_in.push_back(datain);
-
-    for(const auto& i : datareflist)
-    {
-        CMfile_in.push_back(i);
-        _sigma_in.push_back(5);
-    }
-}
-
-featurespace::featurespace(const std::vector<std::string>& datalist) {
-    _fthreshold.resize(2,0.0);
-
-    for(const auto& i : datalist)
-    {
-        CMfile_in.push_back(i);
-        _sigma_in.push_back(5);
-    }
 }
 
 void featurespace::set_smoothing_parameters(const std::vector<double>& s) {
@@ -41,12 +17,12 @@ void featurespace::set_smoothing_parameters(const std::vector<double>& s) {
             for (int i = 0; i < (int) CMfile_in.size(); i++)
                 _sigma_in.push_back(s[0]);
         else
-            throw newresampler::MeshException("Mewmesh::featurespace:: smoothing sigma size incompatible with data dimensions");
+            throw MeshregException("Meshreg::featurespace smoothing sigma size incompatible with data dimensions");
     else
         _sigma_in = s;
 }
 
-newresampler::Mesh featurespace::initialize(int ico, vector<newresampler::Mesh> &IN, bool exclude){
+newresampler::Mesh featurespace::initialize(int ico, std::vector<newresampler::Mesh>& IN, bool exclude) {
 
     newresampler::Mesh icotmp;
 
@@ -69,16 +45,14 @@ newresampler::Mesh featurespace::initialize(int ico, vector<newresampler::Mesh> 
         if (ico == 0) icotmp = IN[i];
 
         if (exclude || _cut)
-        {
-            newresampler::Mesh excl_tmp = newresampler::create_exclusion(IN[i], _fthreshold[0], _fthreshold[1]);
-            EXCL.push_back(std::make_shared<newresampler::Mesh>(excl_tmp));
-        }
+            EXCL.push_back(std::make_shared<newresampler::Mesh>(
+                    newresampler::create_exclusion(IN[i], _fthreshold[0], _fthreshold[1])));
         else
             EXCL.push_back(std::shared_ptr<newresampler::Mesh>());
 
         newresampler::Mesh tmp = newresampler::metric_resample(IN[i], icotmp, _nthreads, EXCL[i]);
 
-        if (_sigma_in[i] > 0)
+        if (_sigma_in[i] > 0.0)
             tmp = newresampler::smooth_data(tmp, tmp, _sigma_in[i], _nthreads, EXCL[i]);
 
         DATA[i] = std::make_shared<MISCMATHS::FullBFMatrix>(tmp.get_pvalues());
@@ -87,12 +61,8 @@ newresampler::Mesh featurespace::initialize(int ico, vector<newresampler::Mesh> 
     // intensity normalise using histogram matching
     if (_intensitynorm)
         for (unsigned int i = 1; i < IN.size(); i++)
-            multivariate_histogram_normalization(*DATA[i], *DATA[0], EXCL[i], EXCL[0], _scale);
+            multivariate_histogram_normalization(*DATA[i], *DATA[0], EXCL[i], EXCL[0], _nthreads);
             // match input data feature distributions to equivalent in ref, rescale all to first feature in reference if _scale is
-
-    if (_logtransform)
-        for (unsigned int i = 0; i < IN.size(); i++)
-            log10_transform_and_normalise(*DATA[i]);
 
     if (_varnorm)
         for (unsigned int i = 0; i < IN.size(); i++)
@@ -101,70 +71,46 @@ newresampler::Mesh featurespace::initialize(int ico, vector<newresampler::Mesh> 
     return icotmp;
 }
 
-void featurespace::variance_normalise(std::shared_ptr<MISCMATHS::BFMatrix> &DATA, std::shared_ptr<newresampler::Mesh> &EXCL) {
+void featurespace::variance_normalise(std::shared_ptr<MISCMATHS::BFMatrix>& DATA, std::shared_ptr<newresampler::Mesh>& EXCL) {
 
-    vector<vector<double>> _data;
+    std::vector<std::vector<double>> _data(DATA->Nrows());
+    const int execution_threads = _nthreads > DATA->Nrows() ? DATA->Nrows() : _nthreads;
 
-    for (unsigned int i = 1; i <= DATA->Ncols(); i++)
-        if (!EXCL || EXCL->get_pvalue(i - 1) > 0)
-        {
-            vector<double> tmp;
-            for (unsigned int k = 1; k <= DATA->Nrows(); k++)
-                tmp.push_back(DATA->Peek(k, i));
-            _data.push_back(tmp);
-        }
+    #pragma omp parallel for num_threads(execution_threads)
+    for (unsigned int k = 1; k <= DATA->Nrows(); k++)
+        for (unsigned int i = 1; i <= DATA->Ncols(); i++)
+            if (!EXCL || EXCL->get_pvalue(i - 1) > 0.0)
+                _data[k - 1].push_back(DATA->Peek(k, i));
 
-    vector<double> mean(_data[0].size(), 0.0),
-                   var(_data[0].size(), 0.0);
+    std::vector<double> mean(DATA->Nrows(), 0.0),
+                        var(DATA->Nrows(), 0.0);
 
-    for(unsigned int j = 0; j < _data[0].size(); j++)
+    #pragma omp parallel for num_threads(execution_threads)
+    for (unsigned int i = 0; i < _data.size(); ++i)
     {
-        for (unsigned int i = 0; i < _data.size(); i++)
+        for(unsigned int j = 0; j < _data[i].size(); j++)
         {
-            double delta = _data[i][j] - mean[j];
-            mean[j] += delta / (i + 1);
-            var[j] += delta * (_data[i][j] - mean[j]);
+            double delta = _data[i][j] - mean[i];
+            mean[i] += delta / (j + 1);
+            var[i] += delta * (_data[i][j] - mean[i]);
         }
 
-        var[j] = var[j] / (_data.size() - 1);
+        var[i] /= (_data[i].size()-1);
 
-        for(auto& i : _data)
+        for(unsigned int j = 0; j < _data[i].size(); ++j)
         {
-            i[j] -= mean[j];
-            if(var[j] > 0)
-                i[j] = i[j] / sqrt(var[j]);
+            _data[i][j] -= mean[i];
+            if(var[i] > 0.0) _data[i][j] /= std::sqrt(var[i]);
         }
     }
 
-    int ind = 0;
-    for (unsigned int i = 1; i <= DATA->Ncols(); i++)
-        if (!EXCL || EXCL->get_pvalue(i - 1) > 0)
-        {
-            for (unsigned int k = 1; k <= DATA->Nrows(); k++)
-                DATA->Set(k, i, _data[ind][k - 1]);
-            ind++;
-        }
-}
-
-void featurespace::log10_transform_and_normalise(MISCMATHS::BFMatrix& data){
-
-    for (int i = 1; i <= (int) data.Ncols(); i++)
-        for (auto it = data.begin(i); it != data.end(i); ++it)
-            data.Set(it.Row(), i, log10(*it + 1));
-
-    for(int i = 1; i <= (int) data.Ncols(); i++)
+    #pragma omp parallel for num_threads(execution_threads)
+    for(int i = 1; i <= DATA->Nrows(); ++i)
     {
-        double size = 0.0, mean = 0.0;
-        for (auto it = data.begin(i); it != data.end(i); ++it)
-            mean += (*it);
-
-        mean /= data.Nrows();
-        for (auto it = data.begin(i); it != data.end(i); ++it)
-            size += (*it - mean) * (*it - mean);
-
-        size = sqrt(size);
-        for (auto it = data.begin(i); it != data.end(i); ++it)
-            if (*it > 0) data.Set(it.Row(), i, *it / size);
+        int data_index = 0;
+        for (int j = 1; j <= DATA->Ncols(); ++j)
+            if (!EXCL || EXCL->get_pvalue(j - 1) > 0.0)
+                DATA->Set(i, j, _data[i - 1][data_index++]);
     }
 }
 

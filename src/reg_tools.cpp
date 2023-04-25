@@ -811,8 +811,11 @@ void set_range(int dim, MISCMATHS::BFMatrix& M, const NEWMAT::ColumnVector& excl
 void multivariate_histogram_normalization(MISCMATHS::BFMatrix& IN, MISCMATHS::BFMatrix& REF,
                                           const std::shared_ptr<newresampler::Mesh>& EXCL_IN,
                                           const std::shared_ptr<newresampler::Mesh>& EXCL_REF,
-                                          bool rescale) {
+                                          int nthreads) {
 
+    const int execution_threads = nthreads > IN.Nrows() ? IN.Nrows() : nthreads;
+
+    #pragma omp parallel for num_threads(execution_threads)
     for(int d = 1; d <= (int) IN.Nrows(); d++)
     {
         NEWMAT::ColumnVector datain(IN.Ncols()), dataref(REF.Ncols());
@@ -864,19 +867,6 @@ void multivariate_histogram_normalization(MISCMATHS::BFMatrix& IN, MISCMATHS::BF
 
         for (unsigned int i = 1; i <= IN.Ncols(); i++)
             IN.Set(d, i, datain(i));
-
-        if(rescale)
-        {
-            if(d>1)
-            {
-                set_range(d,IN,excluded_in,max,min);
-                set_range(d,REF,excluded_ref,max,min);
-            }
-            else
-            {
-                get_range(d,IN,excluded_in,max,min);
-            }
-        }
     }
 }
 

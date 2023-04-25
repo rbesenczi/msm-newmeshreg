@@ -49,7 +49,7 @@ double calculate_triangular_strain(const newresampler::Triangle& ORIG_tr, const 
 //---HIST NORMALISATION---//
 void get_range(int dim, const MISCMATHS::BFMatrix& M, const NEWMAT::ColumnVector& excluded, double& min, double& max);
 void set_range(int dim, MISCMATHS::BFMatrix& M, const NEWMAT::ColumnVector& excluded, double& min, double& max);
-void multivariate_histogram_normalization(MISCMATHS::BFMatrix& IN, MISCMATHS::BFMatrix& REF, const std::shared_ptr<newresampler::Mesh>& EXCL_IN, const std::shared_ptr<newresampler::Mesh>& EXCL_REF, bool rescale = false);
+void multivariate_histogram_normalization(MISCMATHS::BFMatrix& IN, MISCMATHS::BFMatrix& REF, const std::shared_ptr<newresampler::Mesh>& EXCL_IN, const std::shared_ptr<newresampler::Mesh>& EXCL_REF, int nthreads = 1);
 
 //---READ DATA---//
 void set_data(const std::string& dataname, std::shared_ptr<MISCMATHS::BFMatrix>& BF, newresampler::Mesh& M, bool issparse = false);
