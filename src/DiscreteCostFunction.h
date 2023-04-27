@@ -3,7 +3,6 @@
 
 #include <boost/variant/variant.hpp>
 #include <boost/variant/get.hpp>
-//#include <variant>
 #include <memory>
 #include <omp.h>
 #include "featurespace.h"
@@ -14,11 +13,6 @@
 #define EPSILON 1.0E-8
 
 namespace newmeshreg {
-
-typedef std::map<std::string, boost::variant<int, std::string, double, float, bool>> myparam;
-typedef std::pair<std::string, boost::variant<int, std::string, double, float, bool>> parameterPair;
-//typedef std::map<std::string, std::variant<int, std::string, double, float, bool>> myparam;
-//typedef std::pair<std::string, std::variant<int, std::string, double, float, bool>> parameterPair;
 
 class DiscreteCostFunction {
 

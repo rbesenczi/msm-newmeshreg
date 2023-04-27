@@ -2,12 +2,13 @@
 
 namespace newmeshreg {
 
-void Neighbourhood::update(const newresampler::Mesh& source, const newresampler::Mesh& target, double ang) {
+void Neighbourhood::update(const newresampler::Mesh& source, const newresampler::Mesh& target, double ang, int numthreads) {
 
     angsep = ang;
     neighbours.clear();
     neighbours.resize(source.nvertices());
 
+    #pragma omp parallel for num_threads(numthreads)
     for(int index = 0; index < source.nvertices(); ++index)
     {
         newresampler::Point cr = source.get_coord(index);
@@ -25,7 +26,7 @@ void Neighbourhood::update(const newresampler::Mesh& source, const newresampler:
                   [](const auto& lhs, const auto& rhs) -> bool { return lhs.first < rhs.first; });
 
         for(const auto& n : cr_neighbours)
-            neighbours.at(index).emplace_back(n.second);
+            neighbours[index].emplace_back(n.second);
     }
 }
 

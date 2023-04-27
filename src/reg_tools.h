@@ -4,8 +4,13 @@
 #include "newresampler/octree.h"
 #include "miscmaths/histogram.h"
 #include <omp.h>
+#include <boost/variant/variant.hpp>
+#include <boost/variant/get.hpp>
 
 namespace newmeshreg {
+
+typedef std::map<std::string, boost::variant<int, std::string, double, float, bool>> myparam;
+typedef std::pair<std::string, boost::variant<int, std::string, double, float, bool>> parameterPair;
 
 class Neighbourhood {
 
@@ -14,7 +19,7 @@ class Neighbourhood {
 
 public:
     Neighbourhood() = default;
-    void update(const newresampler::Mesh& source, const newresampler::Mesh& target, double ang);
+    void update(const newresampler::Mesh& source, const newresampler::Mesh& target, double ang, int numthreads = 1);
 
     inline unsigned long nrows(int i) const { return neighbours.at(i).size(); }
     inline int operator()(int i, int j) const { return neighbours.at(i).at(j); }
