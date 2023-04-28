@@ -3,9 +3,7 @@
 
 #include <miscmaths/bfmatrix.h>
 
-#include <memory>
 #include "meshregException.h"
-#include "histogram2D.h"
 #include "reg_tools.h"
 
 namespace newmeshreg {
@@ -13,19 +11,11 @@ namespace newmeshreg {
 class sparsesimkernel{
 
 public:
-    sparsesimkernel(): maxx(0), maxy(0), _sim(1), _meanA(0.0), _meanB(0.0),
-                       minx(std::numeric_limits<double>::max()),
-                       miny(std::numeric_limits<double>::max()),
-                       mp(std::make_shared<MISCMATHS::SpMat<double>>()){}
+    sparsesimkernel(): mp(std::make_shared<MISCMATHS::SpMat<double>>()){}
 
-    //---INITIALISE---//
+    //---FOR RIGID---//
     void Initialize(int);
-
-    //---ACCESS---//
     inline double Peek(unsigned int r, unsigned int c) const { return(mp->Peek(r,c)); }
-    double get_sim_for_min(const std::vector<double>&, const std::vector<double>&, const std::vector<double>& weights = std::vector<double>());
-
-    //---SET---//
     void set_simval(int val) { _sim = val; }
     void set_input(std::shared_ptr<MISCMATHS::BFMatrix> in ){ m_A = in; }
     void set_reference(std::shared_ptr<MISCMATHS::BFMatrix> ref){ m_B = ref; }
@@ -33,6 +23,10 @@ public:
     void Resize(unsigned int m, unsigned int n) { mp = std::make_shared<MISCMATHS::SpMat<double>>(m,n); }
     void calculate_sim_column_nbh(int);
 
+    //---FOR DISCRETE---//
+    inline double get_sim_for_min(const std::vector<double>& input, const std::vector<double>& reference, const std::vector<double>& weights){ //for discrete
+        return 1 - ( 1 + corr(input,reference, weights)) / 2;
+    }
 private:
     // DATA
     std::shared_ptr<MISCMATHS::BFMatrix> m_A, m_B;
@@ -41,21 +35,17 @@ private:
 
     NEWMAT::RowVector _rmeanA, _rmeanB;
 
-    double _meanA, _meanB, maxx, maxy, minx, miny;
+    double _meanA, _meanB;
     int _sim;
-    Histogram2D hist; // for NMI
 
-    void Initialize(int, const std::vector<double>&, const std::vector<double>&, const std::vector<double>& weights = std::vector<double>()); // weighted version
-    //---CALC---//
-    NEWMAT::RowVector meanvector(const MISCMATHS::BFMatrix &); // for correlation measure
-    void calc_range(const std::shared_ptr<MISCMATHS::BFMatrix>&, double&, double&); // for histogram based measures
-    void calc_range(const std::vector<double>&, double&, double&);
+    //---FOR RIGID---//
     double corr(int, int);
     double SSD(int, int);
-    double NMI(int, int);
+    NEWMAT::RowVector meanvector(const MISCMATHS::BFMatrix &); // for correlation measure
+
+    //---FOR DISCRETE---//
+    void initialize(const std::vector<double>&, const std::vector<double>&, const std::vector<double>& weights = std::vector<double>()); // weighted version
     double corr(const std::vector<double>&, const std::vector<double>&, const std::vector<double>& weights = std::vector<double>());
-    double SSD(const std::vector<double>&,const std::vector<double>&,const std::vector<double>& weights = std::vector<double>());
-    double NMI(const std::vector<double>&, const std::vector<double>&, const std::vector<double>& weights = std::vector<double>());
 };
 
 } //namespace newmeshreg
