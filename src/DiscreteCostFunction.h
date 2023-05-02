@@ -40,7 +40,7 @@ public:
     virtual double computePairwiseCost(int pair, int labelA, int labelB){ return 0; }; //Computes the pairwise potential for a the given pair and labels.
     virtual double computeTripletCost(int triplet, int labelA, int labelB, int labelC) { return 0; } //Computes the triplet potential for a the given triplet and labels.
     double evaluateTotalCostSumZeroLabeling(); //Evaluates the total cost for the zero labeling.
-    virtual double evaluateTotalCostSum(const int *labeling, const int *pairs, const int *triplets,const int *quartets); //Evaluates the total cost for the given labeling.
+    virtual double evaluateTotalCostSum(const int *labeling, const int *pairs, const int *triplets/*,const int *quartets*/); //Evaluates the total cost for the given labeling.
     double evaluateUnaryCostSum(const int *labeling); //Evaluates the sum of unary costs for a given labeling.
     double evaluatePairwiseCostSum(const int *labeling, const int *pairs); //Evaluates the sum of pairwise costs for a given labeling.
     double evaluateTripletCostSum(const int *labeling, const int *triplets); //Evaluates the sum of triplet costs for a given labeling.

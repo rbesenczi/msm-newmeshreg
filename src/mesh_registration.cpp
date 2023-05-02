@@ -117,14 +117,12 @@ void Mesh_registration::initialize_level(int current_lvl) {
     if(cost[current_lvl] == "DISCRETE")
     {
         isrigid = false;
-        if(_simval[current_lvl] == 3) std::cout << " warning NMI similarity measure does not take into account cost function weights or exclusion values" << std::endl;
         bool multivariate;
         if(FEAT->get_dim() == 1)
         {
             multivariate = false;
             if (_simval[current_lvl] == 4)
-                throw MeshregException(
-                      "MeshREG ERROR:: simval option 4 (alphaMI) is not suitable for univariate costfunctions");
+                throw MeshregException("MeshREG ERROR:: simval option 4 (alphaMI) is not suitable for univariate costfunctions");
         }
         else
             multivariate = true;
@@ -133,7 +131,6 @@ void Mesh_registration::initialize_level(int current_lvl) {
 
         model = std::shared_ptr<SRegDiscreteModel>(new NonLinearSRegDiscreteModel(PARAMETERS));
 
-        //if (_usetraining) model->set_L1path(_L1path);
         if(_debug) model->set_debug();
         model->set_featurespace(FEAT);
         model->set_meshspace(SPH_orig, SPH_orig);
@@ -408,9 +405,8 @@ void Mesh_registration::run_discrete_opt(newresampler::Mesh& source) {
                        targetmesh = model->get_TARGET(),
                        sourcetmp = source;
     int _itersforlevel = boost::get<int>(PARAMETERS.find("iters")->second);
-    //int _itersforlevel = std::get<int>(PARAMETERS.find("iters")->second);
     int numNodes = model->getNumNodes(), iter = 1;
-    double energy = 0, newenergy = 0;
+    double energy = 0.0, newenergy = 0.0;
 
     while(iter <= _itersforlevel)
     {
@@ -468,16 +464,16 @@ void Mesh_registration::run_discrete_opt(newresampler::Mesh& source) {
         if(iter > 1 && ((iter - 1) % 2 == 0) && (energy - newenergy < 0.001))
         {
             if(_verbose)
-                std::cout << iter << " level has converged. newenergy " << newenergy
-                <<  " energy " << energy <<  " energy-newenergy " <<  energy-newenergy << std::endl;
+            {
+                std::cout << iter << " level has converged." << std::endl;
+                std::cout <<  "newenergy " << newenergy <<  "\tenergy " << energy
+                          <<  "\tenergy-newenergy " <<  energy-newenergy << std::endl;
+            }
             break;
         }
-        else
-        {
-            if(_verbose)
-                std::cout <<  "newenergy " << newenergy <<  " energy " << energy
-                <<  " energy-newenergy " <<  energy-newenergy << std::endl;
-        }
+        if(_verbose)
+            std::cout <<  "newenergy " << newenergy <<  "\tenergy " << energy
+            <<  "\tenergy-newenergy " <<  energy-newenergy << std::endl;
 
         //Get initial energy
         //get labelling choices from the FastPD optimiser

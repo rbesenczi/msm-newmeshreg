@@ -1,7 +1,6 @@
 #ifndef NEWMESHREG_DISCRETEMODEL_H
 #define NEWMESHREG_DISCRETEMODEL_H
 
-#include <memory>
 #include <omp.h>
 
 #include "DiscreteCostFunction.h"
@@ -13,17 +12,17 @@ class DiscreteModel {
 public:
     DiscreteModel()
         : m_num_nodes(0), m_num_labels(0), m_num_pairs(0), m_num_triplets(0), //m_num_quartets(0),
-        labeling(nullptr), pairs(nullptr), triplets(nullptr), quartets(nullptr), m_verbosity(false) {}
+        labeling(nullptr), pairs(nullptr), triplets(nullptr), /*quartets(nullptr),*/ m_verbosity(false) {}
 
     explicit DiscreteModel(myparam& P)
         : m_num_nodes(0), m_num_labels(0), m_num_pairs(0), m_num_triplets(0), //m_num_quartets(0),
-        labeling(nullptr), pairs(nullptr), triplets(nullptr), quartets(nullptr), m_verbosity(false) {}
+        labeling(nullptr), pairs(nullptr), triplets(nullptr), /*quartets(nullptr),*/ m_verbosity(false) {}
 
     virtual ~DiscreteModel() {
         delete[] labeling; labeling = nullptr;
         delete[] pairs; pairs = nullptr;
         delete[] triplets; triplets = nullptr;
-        delete[] quartets; quartets= nullptr;
+        //delete[] quartets; quartets= nullptr;
     }
 
     //---GET---//
@@ -41,31 +40,31 @@ public:
 
     //---COMPUTE---//
     virtual void computeUnaryCosts(){}
-    virtual double computeUnaryCost(int node, int label){ return 0; }
-    virtual void computePairwiseCosts(){}
-    virtual double computePairwiseCost(int pair, int labelA, int labelB){ return 0;}
+    virtual double computeUnaryCost(int node, int label) { return 0; }
+    virtual void computePairwiseCosts() {}
+    virtual double computePairwiseCost(int pair, int labelA, int labelB) { return 0; }
     virtual double computeTripletCost(int triplet, int labelA, int labelB, int labelC) { return 0; }
     //virtual double computeQuartetCost(int quartet, int labelA, int labelB, int labelC, int labelD) { return 0; }
-    virtual double evaluateTotalCostSumZeroLabeling(){ return 0; }
-    virtual double evaluateTotalCostSum(){ return 0; }
-    virtual double evaluateUnaryCostSum(){ return 0; }
-    virtual double evaluatePairwiseCostSum(){ return 0; }
-    virtual double evaluateTripletCostSum(){ return 0; }
+    virtual double evaluateTotalCostSumZeroLabeling() { return 0; }
+    virtual double evaluateTotalCostSum() { return 0; }
+    virtual double evaluateUnaryCostSum() { return 0; }
+    virtual double evaluatePairwiseCostSum() { return 0; }
+    virtual double evaluateTripletCostSum() { return 0; }
     //virtual double evaluateQuartetCostSum(){ return 0; }
 
     //---MODIFY---//
     virtual void applyLabeling(){}
-    virtual void applyLabeling(int *discreteLabeling){}
-    virtual void applytestLabeling(int *discreteLabeling, int lab){}
+    virtual void applyLabeling(int *discreteLabeling) {}
+    virtual void applytestLabeling(int *discreteLabeling, int lab) {}
     virtual int GetLabel(int node) = 0;
     virtual void report(){}
 
     //---INITIALIZE---//
     void resetLabeling() { if(labeling) std::fill(labeling,labeling + m_num_nodes,0.0); }
-    virtual void Initialize(const newresampler::Mesh &){}
-    virtual void Initialize(){}
-    virtual void setupCostFunction(){}
-    virtual void set_parameters(myparam& PAR){}
+    virtual void Initialize(const newresampler::Mesh&) {}
+    virtual void Initialize() {}
+    virtual void setupCostFunction() {}
+    virtual void set_parameters(myparam& PAR) {}
 
 protected:
     void initLabeling() {
@@ -85,7 +84,7 @@ protected:
     int* labeling;      // Labeling array.
     int* pairs;         // Node pairs array.
     int* triplets;      // Node triplets array.
-    int* quartets;      // Node quartets array.
+    //int* quartets;      // Node quartets array.
 
     std::string m_outdir;
     bool m_verbosity;
@@ -153,7 +152,7 @@ public:
 
     explicit SRegDiscreteModel(myparam& PAR) {
         set_parameters(PAR);
-        initialize_cost_function(m_multivariate,m_simmeasure,PAR);
+        initialize_cost_function(m_multivariate, PAR);
     }
 
     ~SRegDiscreteModel() override = default;
@@ -171,7 +170,7 @@ public:
     //double computeQuartetCost(int quartet, int labelA, int labelB, int labelC, int labelD) override { return (costfct) ? costfct->computeQuartetCost(quartet,labelA,labelB,labelC,labelD) : 0.0f; }
 
     double evaluateTotalCostSumZeroLabeling() override { return (costfct) ? costfct->evaluateTotalCostSumZeroLabeling() : 0.0f; }
-    double evaluateTotalCostSum() override { return (costfct) ? costfct->evaluateTotalCostSum(labeling,pairs,triplets,quartets) : 0.0f; }
+    double evaluateTotalCostSum() override { return (costfct) ? costfct->evaluateTotalCostSum(labeling,pairs,triplets/*,quartets*/) : 0.0f; }
     double evaluateUnaryCostSum() override { if(costfct) return costfct->evaluateUnaryCostSum(labeling); else return 0.0f; }
     double evaluatePairwiseCostSum() override { if(costfct) return costfct->evaluatePairwiseCostSum(labeling,pairs); else return 0.0f; }
     double evaluateTripletCostSum() override { if(costfct) return costfct->evaluateTripletCostSum(labeling,triplets); else return 0.0f; }
@@ -211,7 +210,7 @@ public:
         unfold(m_CPgrid);
     }
 
-    void initialize_cost_function(bool MV, int sim, myparam &P);
+    void initialize_cost_function(bool MV, myparam &P);
     void Initialize_sampling_grid();
     void label_sampling_grid(int, double, newresampler::Mesh&);
 
@@ -257,7 +256,7 @@ protected:
     bool m_debug = false;
     bool m_triclique = false;
     bool _pairwise = false;
-    bool _estquartet = false;
+    //bool _estquartet = false;
     bool m_rescalelabels = false;
     newresampler::Point centre;
 
@@ -270,17 +269,17 @@ protected:
 
 class NonLinearSRegDiscreteModel: public SRegDiscreteModel {
 public:
-    NonLinearSRegDiscreteModel()= default;;
-    explicit NonLinearSRegDiscreteModel(myparam& P) : SRegDiscreteModel(P){  set_parameters(P); };
+    //NonLinearSRegDiscreteModel() = default;
+    explicit NonLinearSRegDiscreteModel(myparam& P) : SRegDiscreteModel(P){  set_parameters(P); }
 
-    void applyLabeling() override{ applyLabeling(labeling); }
+    void applyLabeling() override { applyLabeling(labeling); }
     void applyLabeling(int* discreteLabeling) override;
 
     void estimate_pairs();
     void estimate_triplets();
 
     void Initialize(const newresampler::Mesh&) override;
-    void Initialize() override {};
+    //void Initialize() override {};
 
     void get_rotations(std::vector<NEWMAT::Matrix>&);
     void setupCostFunction() override;

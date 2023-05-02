@@ -58,7 +58,7 @@ double DiscreteCostFunction::evaluateTotalCostSumZeroLabeling() {
     return cost_sum_unary + cost_sum_pairwise + cost_sum_triplet;
 }
 
-double DiscreteCostFunction::evaluateTotalCostSum(const int *labeling, const int *pairs, const int *triplets, const int *quartets) {
+double DiscreteCostFunction::evaluateTotalCostSum(const int *labeling, const int *pairs, const int *triplets/*, const int *quartets*/) {
 
     double cost_sum_unary = 0.0f;
     double cost_sum_pairwise = 0.0f;

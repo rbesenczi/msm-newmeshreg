@@ -15,20 +15,7 @@ void SRegDiscreteModel::set_parameters(myparam& PAR) {
     it=PAR.find("outdir"); m_outdir = boost::get<string>(it->second);
     it=PAR.find("TriLikelihood"); m_triclique = boost::get<bool>(it->second);
     it=PAR.find("rescalelabels"); m_rescalelabels = boost::get<bool>(it->second);
-    it=PAR.find("quartet"); _estquartet = boost::get<bool>(it->second);
     it=PAR.find("numthreads"); _nthreads = boost::get<int>(it->second);
-    /*
-    it=PAR.find("CPres"); m_CPres = std::get<int>(it->second);
-    it=PAR.find("SGres"); m_SGres = std::get<int>(it->second);
-    it=PAR.find("simmeasure"); m_simmeasure = std::get<int>(it->second);
-    it=PAR.find("regularisermode"); m_regoption = std::get<int>(it->second);
-    it=PAR.find("multivariate"); m_multivariate = std::get<bool>(it->second);
-    it=PAR.find("verbosity"); m_verbosity = std::get<bool>(it->second);
-    it=PAR.find("outdir"); m_outdir = std::get<std::string>(it->second);
-    it=PAR.find("TriLikelihood"); m_triclique = std::get<bool>(it->second);
-    it=PAR.find("rescalelabels"); m_rescalelabels = std::get<bool>(it->second);
-    it=PAR.find("quartet"); _estquartet = std::get<bool>(it->second);
-    */
     if(m_regoption == 1) _pairwise = true;
 }
 
@@ -74,7 +61,7 @@ void SRegDiscreteModel::Initialize(const newresampler::Mesh& CONTROLGRID) {
     m_iter = 1;
 }
 
-void SRegDiscreteModel::initialize_cost_function(bool MV, int sim, myparam& P) {
+void SRegDiscreteModel::initialize_cost_function(bool MV, myparam& P) {
 
     if (MV)
         if(m_triclique)
@@ -175,6 +162,7 @@ vector<newresampler::Point> SRegDiscreteModel::rescale_sampling_grid() {
 
     if(m_scale >= 0.25)
     {
+        #pragma omp parallel for num_threads(_nthreads)
         for (int i = 0; i < m_samples.size(); i++)
         {
             newresampler::Point newsample = centre + (centre - m_samples[i]) * m_scale;
@@ -252,8 +240,9 @@ void NonLinearSRegDiscreteModel::get_rotations(vector<NEWMAT::Matrix>& ROT) {
     // rotates sampling grid to each control point
     ROT.clear();
     ROT.resize(m_CPgrid.nvertices());
-    newresampler::Point ci = m_samplinggrid.get_coord(m_centroid);
+    const newresampler::Point ci = m_samplinggrid.get_coord(m_centroid);
 
+    #pragma omp parallel for num_threads(_nthreads)
     for (int k = 0; k < m_CPgrid.nvertices(); k++)
         ROT[k] = estimate_rotation_matrix(ci, m_CPgrid.get_coord(k));
 }
