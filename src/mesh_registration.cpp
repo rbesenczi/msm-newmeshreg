@@ -28,67 +28,6 @@ void Mesh_registration::run_multiresolutions(const std::string& parameters) {
     save_transformed_data(_outdir);
 }
 
-void Mesh_registration::set_input(const newresampler::Mesh& M) {
-    MESHES[0] = M;
-    recentre(MESHES[0]);
-    true_rescale(MESHES[0], RAD);
-}
-
-void Mesh_registration::set_input(const std::string &M) {
-    MESHES[0].load(M);
-    recentre(MESHES[0]);
-    true_rescale(MESHES[0], RAD);
-}
-
-void Mesh_registration::set_inputs(const std::string& s) {
-    std::vector<std::string> meshlist = read_ascii_list(s);
-    newresampler::Mesh tmp;
-    MESHES.clear();
-    for (int i = 0; i < meshlist.size(); i++) {
-        if (_verbose) std::cout << i << " " << meshlist[i] << std::endl;
-        tmp.load(meshlist[i]);
-        MESHES.push_back(tmp);
-    }
-}
-
-void Mesh_registration::set_reference(const newresampler::Mesh &M) {
-    MESHES[1] = M;
-    recentre(MESHES[1]);
-    true_rescale(MESHES[1], RAD);
-}
-
-void Mesh_registration::set_reference(const std::string& M) {
-    MESHES[1].load(M);
-    recentre(MESHES[1]);
-    true_rescale(MESHES[1], RAD);
-}
-
-void Mesh_registration::set_anatomical(const std::string &M1, const std::string &M2) {
-    _anat = true;
-    in_anat.load(M1);
-    ref_anat.load(M2);
-}
-
-void Mesh_registration::set_transformed(const std::string &M) {
-    transformed_mesh.load(M);
-    true_rescale(MESHES[1], RAD);
-    //_initialise = true;
-}
-
-void Mesh_registration::set_input_cfweighting(const std::string& E) {
-    IN_CFWEIGHTING = std::make_shared<newresampler::Mesh>(MESHES[0]);
-    IN_CFWEIGHTING->load(E, false, false);
-    true_rescale(*IN_CFWEIGHTING, RAD);
-    _incfw = true;
-}
-
-void Mesh_registration::set_reference_cfweighting(const std::string& E) {
-    REF_CFWEIGHTING = std::make_shared<newresampler::Mesh>(MESHES[1]);
-    REF_CFWEIGHTING->load(E, false, false);
-    true_rescale(*REF_CFWEIGHTING, RAD);
-    _refcfw = true;
-}
-
 void Mesh_registration::initialize_level(int current_lvl) {
 
     check();
@@ -433,7 +372,7 @@ void Mesh_registration::run_discrete_opt(newresampler::Mesh& source) {
             else
                 throw MeshregException("discrete optimisation mode is not available");
 
-            newenergy = Fusion::optimize(model, HOCR_mode, _verbose);
+            newenergy = Fusion::optimize(model, HOCR_mode, _verbose, _numthreads);
 #endif
         }
 
@@ -466,6 +405,67 @@ void Mesh_registration::run_discrete_opt(newresampler::Mesh& source) {
         energy = newenergy;
         iter++;
     }
+}
+
+void Mesh_registration::set_input(const newresampler::Mesh& M) {
+    MESHES[0] = M;
+    recentre(MESHES[0]);
+    true_rescale(MESHES[0], RAD);
+}
+
+void Mesh_registration::set_input(const std::string &M) {
+    MESHES[0].load(M);
+    recentre(MESHES[0]);
+    true_rescale(MESHES[0], RAD);
+}
+
+void Mesh_registration::set_inputs(const std::string& s) {
+    std::vector<std::string> meshlist = read_ascii_list(s);
+    newresampler::Mesh tmp;
+    MESHES.clear();
+    for (int i = 0; i < meshlist.size(); i++) {
+        if (_verbose) std::cout << i << " " << meshlist[i] << std::endl;
+        tmp.load(meshlist[i]);
+        MESHES.push_back(tmp);
+    }
+}
+
+void Mesh_registration::set_reference(const newresampler::Mesh &M) {
+    MESHES[1] = M;
+    recentre(MESHES[1]);
+    true_rescale(MESHES[1], RAD);
+}
+
+void Mesh_registration::set_reference(const std::string& M) {
+    MESHES[1].load(M);
+    recentre(MESHES[1]);
+    true_rescale(MESHES[1], RAD);
+}
+
+void Mesh_registration::set_anatomical(const std::string &M1, const std::string &M2) {
+    _anat = true;
+    in_anat.load(M1);
+    ref_anat.load(M2);
+}
+
+void Mesh_registration::set_transformed(const std::string &M) {
+    transformed_mesh.load(M);
+    true_rescale(MESHES[1], RAD);
+    //_initialise = true;
+}
+
+void Mesh_registration::set_input_cfweighting(const std::string& E) {
+    IN_CFWEIGHTING = std::make_shared<newresampler::Mesh>(MESHES[0]);
+    IN_CFWEIGHTING->load(E, false, false);
+    true_rescale(*IN_CFWEIGHTING, RAD);
+    _incfw = true;
+}
+
+void Mesh_registration::set_reference_cfweighting(const std::string& E) {
+    REF_CFWEIGHTING = std::make_shared<newresampler::Mesh>(MESHES[1]);
+    REF_CFWEIGHTING->load(E, false, false);
+    true_rescale(*REF_CFWEIGHTING, RAD);
+    _refcfw = true;
 }
 
 void Mesh_registration::parse_reg_options(const std::string &parameters)

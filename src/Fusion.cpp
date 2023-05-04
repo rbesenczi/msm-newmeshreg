@@ -37,7 +37,7 @@ void Fusion::reduce_and_convert(ELCReduce::PBF<REAL>& pbf, OPTIMIZER& MODEL, Red
     }
 }
 
-double Fusion::optimize(const std::shared_ptr<DiscreteModel>& energy, Reduction reductionMode, bool verbose) {
+double Fusion::optimize(const std::shared_ptr<DiscreteModel>& energy, Reduction reductionMode, bool verbose, int numthreads) {
 
     const int *triplets = energy->getTriplets();
     int *labeling = energy->getLabeling();
@@ -59,7 +59,7 @@ double Fusion::optimize(const std::shared_ptr<DiscreteModel>& energy, Reduction 
 
             std::vector<UnaryData> unary_data(energy->getNumNodes());
 
-            #pragma omp parallel for num_threads(8)
+            #pragma omp parallel for num_threads(numthreads)
             for(int node = 0; node < energy->getNumNodes(); ++node)
             {
                 unary_data[node].buffer[0] = energy->computeUnaryCost(node,labeling[node]);	//0
@@ -75,7 +75,7 @@ double Fusion::optimize(const std::shared_ptr<DiscreteModel>& energy, Reduction 
 
                 std::vector<TripletData> triplet_data(energy->getNumTriplets());
 
-                #pragma omp parallel for num_threads(8)
+                #pragma omp parallel for num_threads(numthreads)
                 for (int triplet = 0; triplet < energy->getNumTriplets(); ++triplet)
                 {
                     const int nodeA = triplets[triplet*3];

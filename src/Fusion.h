@@ -25,9 +25,10 @@ namespace newmeshreg {
 enum Reduction { ELC_HOCR, ELC_APPROX, HOCR };
 
 class Fusion {
+    int numthreads = 1;
 public:
     template<typename OPTIMIZER> static void reduce_and_convert(ELCReduce::PBF<REAL>&, OPTIMIZER&, Reduction);
-    static double optimize(const std::shared_ptr<DiscreteModel>& energy, Reduction reductionMode, bool debug = false);
+    static double optimize(const std::shared_ptr<DiscreteModel>& energy, Reduction reductionMode, bool debug = false, int numthreads = 1);
 };
 
 } //namespace newmeshreg

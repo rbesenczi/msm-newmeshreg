@@ -2,11 +2,10 @@
 
 namespace newmeshreg {
 
+//---SRegDiscreteModel---//
 void SRegDiscreteModel::set_parameters(myparam& PAR) {
     myparam::iterator it;
-    it=PAR.find("CPres"); m_CPres = boost::get<int>(it->second);
     it=PAR.find("SGres"); m_SGres = boost::get<int>(it->second);
-    it=PAR.find("simmeasure"); m_simmeasure = boost::get<int>(it->second);
     it=PAR.find("regularisermode"); m_regoption = boost::get<int>(it->second);
     it=PAR.find("multivariate"); m_multivariate = boost::get<bool>(it->second);
     it=PAR.find("verbosity"); m_verbosity = boost::get<bool>(it->second);
@@ -15,6 +14,22 @@ void SRegDiscreteModel::set_parameters(myparam& PAR) {
     it=PAR.find("rescalelabels"); m_rescalelabels = boost::get<bool>(it->second);
     it=PAR.find("numthreads"); _nthreads = boost::get<int>(it->second);
     if(m_regoption == 1) _pairwise = true;
+}
+
+void SRegDiscreteModel::initialize_cost_function(bool MV, myparam& P) {
+
+    if (MV)
+        if(m_triclique)
+            costfct = std::shared_ptr<SRegDiscreteCostFunction>(new HOMultivariateNonLinearSRegDiscreteCostFunction());
+        else
+            costfct = std::shared_ptr<SRegDiscreteCostFunction>(new MultivariateNonLinearSRegDiscreteCostFunction());
+    else
+    if (m_triclique)
+        costfct = std::shared_ptr<SRegDiscreteCostFunction>(new HOUnivariateNonLinearSRegDiscreteCostFunction());
+    else
+        costfct = std::shared_ptr<SRegDiscreteCostFunction>(new UnivariateNonLinearSRegDiscreteCostFunction());
+
+    costfct->set_parameters(P);
 }
 
 void SRegDiscreteModel::Initialize(const newresampler::Mesh& CONTROLGRID) {
@@ -57,22 +72,6 @@ void SRegDiscreteModel::Initialize(const newresampler::Mesh& CONTROLGRID) {
     costfct->set_spacings(vMAXmvd, MVDmax);
 
     m_iter = 1;
-}
-
-void SRegDiscreteModel::initialize_cost_function(bool MV, myparam& P) {
-
-    if (MV)
-        if(m_triclique)
-            costfct = std::shared_ptr<SRegDiscreteCostFunction>(new HOMultivariateNonLinearSRegDiscreteCostFunction());
-        else
-            costfct = std::shared_ptr<SRegDiscreteCostFunction>(new MultivariateNonLinearSRegDiscreteCostFunction());
-    else
-        if (m_triclique)
-            costfct = std::shared_ptr<SRegDiscreteCostFunction>(new HOUnivariateNonLinearSRegDiscreteCostFunction());
-        else
-            costfct = std::shared_ptr<SRegDiscreteCostFunction>(new UnivariateNonLinearSRegDiscreteCostFunction());
-
-    costfct->set_parameters(P);
 }
 
 void SRegDiscreteModel::Initialize_sampling_grid() {
@@ -177,6 +176,24 @@ std::vector<newresampler::Point> SRegDiscreteModel::rescale_sampling_grid() {
     return newlabels;
 }
 
+//---NonLinearSRegDiscreteModel---//
+void NonLinearSRegDiscreteModel::Initialize(const newresampler::Mesh& CONTROLGRID) {
+
+    SRegDiscreteModel::Initialize(CONTROLGRID);
+    m_scale = 1;
+    if (_pairwise)
+        estimate_pairs();
+    else
+        estimate_triplets();
+
+    //---INITIALIAZE LABEL GRID---//
+    Initialize_sampling_grid();
+    get_rotations(m_ROT);  // enables rotation of sampling grid onto every CP
+
+    //---INITIALIZE NEIGHBOURHOODS---//
+    m_inputtree = std::make_shared<newresampler::Octree>(m_TARGET);
+}
+
 void NonLinearSRegDiscreteModel::estimate_pairs() {
 
     int pair = 0;
@@ -214,23 +231,6 @@ void NonLinearSRegDiscreteModel::estimate_triplets() {
         triplets[3 * i + 1] = node_ids[1];
         triplets[3 * i + 2] = node_ids[2];
     }
-}
-
-void NonLinearSRegDiscreteModel::Initialize(const newresampler::Mesh& CONTROLGRID) {
-
-    SRegDiscreteModel::Initialize(CONTROLGRID);
-    m_scale = 1;
-    if (_pairwise)
-        estimate_pairs();
-    else
-        estimate_triplets();
-
-    //---INITIALIAZE LABEL GRID---//
-    Initialize_sampling_grid();
-    get_rotations(m_ROT);  // enables rotation of sampling grid onto every CP
-
-    //---INITIALIZE NEIGHBOURHOODS---//
-    m_inputtree = std::make_shared<newresampler::Octree>(m_TARGET);
 }
 
 void NonLinearSRegDiscreteModel::get_rotations(std::vector<NEWMAT::Matrix>& ROT) {

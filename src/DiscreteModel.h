@@ -11,18 +11,17 @@ class DiscreteModel {
 
 public:
     DiscreteModel()
-        : m_num_nodes(0), m_num_labels(0), m_num_pairs(0), m_num_triplets(0), //m_num_quartets(0),
-        labeling(nullptr), pairs(nullptr), triplets(nullptr), /*quartets(nullptr),*/ m_verbosity(false) {}
+        : m_num_nodes(0), m_num_labels(0), m_num_pairs(0), m_num_triplets(0),
+        labeling(nullptr), pairs(nullptr), triplets(nullptr), m_verbosity(false) {}
 
     explicit DiscreteModel(myparam& P)
-        : m_num_nodes(0), m_num_labels(0), m_num_pairs(0), m_num_triplets(0), //m_num_quartets(0),
-        labeling(nullptr), pairs(nullptr), triplets(nullptr), /*quartets(nullptr),*/ m_verbosity(false) {}
+        : m_num_nodes(0), m_num_labels(0), m_num_pairs(0), m_num_triplets(0),
+        labeling(nullptr), pairs(nullptr), triplets(nullptr), m_verbosity(false) {}
 
     virtual ~DiscreteModel() {
         delete[] labeling; labeling = nullptr;
         delete[] pairs; pairs = nullptr;
         delete[] triplets; triplets = nullptr;
-        //delete[] quartets; quartets= nullptr;
     }
 
     //---GET---//
@@ -30,12 +29,10 @@ public:
     int getNumLabels() const { return m_num_labels; }
     int getNumPairs() const { return m_num_pairs; }
     int getNumTriplets() const { return m_num_triplets; }
-    //int getNumQuartets() const { return m_num_quartets; }
     int* getLabeling() { return labeling; }
     const int* getLabeling() const { return labeling; }
     const int* getPairs() const { return pairs; }
     const int* getTriplets() const { return triplets; }
-    //const int* getQuartets() const { return quartets; }
     virtual std::shared_ptr<DiscreteCostFunction> getCostFunction() = 0;
 
     //---COMPUTE---//
@@ -44,25 +41,16 @@ public:
     virtual void computePairwiseCosts() {}
     virtual double computePairwiseCost(int pair, int labelA, int labelB) { return 0; }
     virtual double computeTripletCost(int triplet, int labelA, int labelB, int labelC) { return 0; }
-    //virtual double computeQuartetCost(int quartet, int labelA, int labelB, int labelC, int labelD) { return 0; }
-    virtual double evaluateTotalCostSumZeroLabeling() { return 0; }
     virtual double evaluateTotalCostSum() { return 0; }
-    virtual double evaluateUnaryCostSum() { return 0; }
-    virtual double evaluatePairwiseCostSum() { return 0; }
-    virtual double evaluateTripletCostSum() { return 0; }
-    //virtual double evaluateQuartetCostSum(){ return 0; }
 
     //---MODIFY---//
     virtual void applyLabeling(){}
     virtual void applyLabeling(int *discreteLabeling) {}
-    virtual void applytestLabeling(int *discreteLabeling, int lab) {}
-    virtual int GetLabel(int node) = 0;
     virtual void report(){}
 
     //---INITIALIZE---//
     void resetLabeling() { if(labeling) std::fill(labeling,labeling + m_num_nodes,0.0); }
     virtual void Initialize(const newresampler::Mesh&) {}
-    virtual void Initialize() {}
     virtual void setupCostFunction() {}
     virtual void set_parameters(myparam& PAR) {}
 
@@ -80,11 +68,9 @@ protected:
     int m_num_labels;   // Number of labels.
     int m_num_pairs;    // Number of node pairs.
     int m_num_triplets; // Number of node triplets.
-    //int m_num_quartets;	// Number of node quartets (currently none).
     int* labeling;      // Labeling array.
     int* pairs;         // Node pairs array.
     int* triplets;      // Node triplets array.
-    //int* quartets;      // Node quartets array.
 
     std::string m_outdir;
     bool m_verbosity;
@@ -137,9 +123,6 @@ public:
         costfct->reset();
     }
 
-    // write
-    int GetLabel(int node) override { return labeling[node]; }
-
 protected:
     std::map<int,std::vector<int>> pairIDs;
     std::shared_ptr<DummyCostFunction> costfct;
@@ -162,37 +145,27 @@ public:
         return dcostfct;
     }
 
-    void computeUnaryCosts() override { if(costfct) costfct->computeUnaryCosts(); }
+    void computeUnaryCosts() override { costfct->computeUnaryCosts(); }
     double computeUnaryCost(int node, int label) override { return (costfct) ? costfct->computeUnaryCost(node,label) : 0.0f; }
-    void computePairwiseCosts() override { if(costfct) costfct->computePairwiseCosts(pairs); }
+    void computePairwiseCosts() override { costfct->computePairwiseCosts(pairs); }
     double computePairwiseCost(int pair, int labelA, int labelB) override {return (costfct) ? costfct->computePairwiseCost(pair,labelA,labelB): 0.0f; }
     double computeTripletCost(int triplet, int labelA, int labelB, int labelC) override { return (costfct) ? costfct->computeTripletCost(triplet,labelA,labelB,labelC) : 0.0f; }
-    //double computeQuartetCost(int quartet, int labelA, int labelB, int labelC, int labelD) override { return (costfct) ? costfct->computeQuartetCost(quartet,labelA,labelB,labelC,labelD) : 0.0f; }
-
-    double evaluateTotalCostSumZeroLabeling() override { return (costfct) ? costfct->evaluateTotalCostSumZeroLabeling() : 0.0f; }
-    double evaluateTotalCostSum() override { return (costfct) ? costfct->evaluateTotalCostSum(labeling,pairs,triplets/*,quartets*/) : 0.0f; }
-    double evaluateUnaryCostSum() override { if(costfct) return costfct->evaluateUnaryCostSum(labeling); else return 0.0f; }
-    double evaluatePairwiseCostSum() override { if(costfct) return costfct->evaluatePairwiseCostSum(labeling,pairs); else return 0.0f; }
-    double evaluateTripletCostSum() override { if(costfct) return costfct->evaluateTripletCostSum(labeling,triplets); else return 0.0f; }
-    //double evaluateQuartetCostSum() override { if(costfct) return costfct->evaluateQuartetCostSum(labeling,triplets); else return 0.0f; }
+    double evaluateTotalCostSum() override { return (costfct) ? costfct->evaluateTotalCostSum(labeling,pairs,triplets) : 0.0f; }
     void set_parameters(myparam& PAR) override;
 
     //---INITIALIZE MODEL---//
-    virtual void set_meshspace(const newresampler::Mesh& target,const newresampler::Mesh& source) { m_TARGET = target; m_SOURCE = source; }
+    virtual void set_meshspace(const newresampler::Mesh& target, const newresampler::Mesh& source) { m_TARGET = target; m_SOURCE = source; }
     void set_anatomical_meshspace(const newresampler::Mesh& ref_sphere, const newresampler::Mesh& ref_anat,
                                   const newresampler::Mesh& source_sphere, const newresampler::Mesh & source_anat) {
-        if (costfct) costfct->set_anatomical(ref_sphere, ref_anat, source_sphere, source_anat);
+        costfct->set_anatomical(ref_sphere, ref_anat, source_sphere, source_anat);
     }
     void set_anatomical_neighbourhood(const std::vector<std::map<int,double>>& weights, const std::vector<std::vector<int>>& neighbourhood) {
-        if (costfct) costfct->set_anatomical_neighbourhood(weights, neighbourhood);
+        costfct->set_anatomical_neighbourhood(weights, neighbourhood);
     }
 
-    void set_featurespace(const std::shared_ptr<featurespace>& FEATURES, bool _concatenate = false) {
-        if(FEATURES->get_dim() > 1) m_multivariate = true;
-        if (costfct) costfct->set_featurespace(FEATURES, _concatenate);
+    void set_featurespace(const std::shared_ptr<featurespace>& FEATURES) {
+        costfct->set_featurespace(FEATURES);
     }
-
-    void set_L1path(const std::string& s) { if (costfct) costfct->set_matlab_path(s); }
 
     // costfunction weighting combines source and reference weightings at beginning of optimisation iteration -
     //will not be 100% accurate but will remove any sensitivity of the label choices to weighting
@@ -201,7 +174,7 @@ public:
     // source needs to be reset after every iteration of discrete optimisation
     virtual void reset_meshspace(const newresampler::Mesh& source) {
         m_SOURCE = source;
-        if (costfct) costfct->reset_source(source);
+        costfct->reset_source(source);
     }
 
     virtual void reset_CPgrid(const newresampler::Mesh& grid) { m_CPgrid = grid; }
@@ -213,27 +186,16 @@ public:
     void initialize_cost_function(bool MV, myparam &P);
     void Initialize_sampling_grid();
     void label_sampling_grid(int, double, newresampler::Mesh&);
-
     std::vector<newresampler::Point> rescale_sampling_grid();
 
     void Initialize(const newresampler::Mesh&) override;
 
     virtual void set_debug(){ m_debug = true; costfct->debug(); } // for debuging
 
-    newresampler::Mesh get_SOURCE() {
-        if(costfct) return costfct->get_SOURCE();
-        else
-        {
-            std::cout << " no costfunction return inital source mesh " << std::endl;
-            return m_SOURCE;
-        }
-    }
-
     newresampler::Mesh get_TARGET(){ return m_TARGET; }
     virtual newresampler::Mesh get_CPgrid() { return m_CPgrid; }
 
     void report() override { if (costfct) costfct->report(); }
-    int GetLabel(int node) override { return labeling[node]; }
 
 protected:
     newresampler::Mesh m_TARGET; // TARGET MESH
@@ -243,11 +205,9 @@ protected:
 
     std::shared_ptr<newresampler::Octree> m_inputtree;
 
-    int m_CPres = 2; //control grid resolution
     int m_SGres = 4; // sampling grid resolution
     int m_iter = 0; // iteration of the discrete optimisation
     int m_centroid = 0; // used for selecting which sampling grid vertex will form the center of the sampling grid
-    int m_simmeasure = 2; // sim measure i.e. correlation
     int m_regoption = 2; // sim measure i.e. correlation
     double m_maxs_dist = 0.0; // define maximum distance between the centre of the sampling grid and the furthest label
     double MVD = 0.0;
@@ -256,7 +216,6 @@ protected:
     bool m_debug = false;
     bool m_triclique = false;
     bool _pairwise = false;
-    //bool _estquartet = false;
     bool m_rescalelabels = false;
     newresampler::Point centre;
 
@@ -269,7 +228,6 @@ protected:
 
 class NonLinearSRegDiscreteModel: public SRegDiscreteModel {
 public:
-    //NonLinearSRegDiscreteModel() = default;
     explicit NonLinearSRegDiscreteModel(myparam& P) : SRegDiscreteModel(P){  set_parameters(P); }
 
     void applyLabeling() override { applyLabeling(labeling); }
@@ -279,7 +237,6 @@ public:
     void estimate_triplets();
 
     void Initialize(const newresampler::Mesh&) override;
-    //void Initialize() override {};
 
     void get_rotations(std::vector<NEWMAT::Matrix>&);
     void setupCostFunction() override;
