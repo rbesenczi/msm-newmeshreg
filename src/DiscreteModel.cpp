@@ -1,7 +1,5 @@
 #include "DiscreteModel.h"
 
-using namespace std;
-
 namespace newmeshreg {
 
 void SRegDiscreteModel::set_parameters(myparam& PAR) {
@@ -12,7 +10,7 @@ void SRegDiscreteModel::set_parameters(myparam& PAR) {
     it=PAR.find("regularisermode"); m_regoption = boost::get<int>(it->second);
     it=PAR.find("multivariate"); m_multivariate = boost::get<bool>(it->second);
     it=PAR.find("verbosity"); m_verbosity = boost::get<bool>(it->second);
-    it=PAR.find("outdir"); m_outdir = boost::get<string>(it->second);
+    it=PAR.find("outdir"); m_outdir = boost::get<std::string>(it->second);
     it=PAR.find("TriLikelihood"); m_triclique = boost::get<bool>(it->second);
     it=PAR.find("rescalelabels"); m_rescalelabels = boost::get<bool>(it->second);
     it=PAR.find("numthreads"); _nthreads = boost::get<int>(it->second);
@@ -54,7 +52,7 @@ void SRegDiscreteModel::Initialize(const newresampler::Mesh& CONTROLGRID) {
 
     //---INITIALIZE COSTFCT---//
     costfct->set_meshes(m_TARGET, m_SOURCE, m_CPgrid);
-    vector<vector<double>> orig_angles = m_CPgrid.get_face_angles();
+    std::vector<std::vector<double>> orig_angles = m_CPgrid.get_face_angles();
     costfct->set_initial_angles(orig_angles);
     costfct->set_spacings(vMAXmvd, MVDmax);
 
@@ -95,7 +93,7 @@ void SRegDiscreteModel::label_sampling_grid(int centroid, double dist, newresamp
 
     m_samples.clear();
     m_barycentres.clear();
-    vector<int> getneighbours, newneighbours;
+    std::vector<int> getneighbours, newneighbours;
     int label = 1;
     NEWMAT::ColumnVector found(Grid.nvertices()), found_tr(Grid.ntriangles());
     found = 0; found_tr = 0;
@@ -154,11 +152,11 @@ void SRegDiscreteModel::label_sampling_grid(int centroid, double dist, newresamp
     }
 }
 
-vector<newresampler::Point> SRegDiscreteModel::rescale_sampling_grid() {
+std::vector<newresampler::Point> SRegDiscreteModel::rescale_sampling_grid() {
 
-    vector<newresampler::Point> newlabels(m_samples.size());
+    std::vector<newresampler::Point> newlabels(m_samples.size());
 
-    if(m_verbosity) cout << " resample labels " << m_scale << " length scale " << (centre-m_samples[1]).norm() << endl;
+    if(m_verbosity) std::cout << " resample labels " << m_scale << " length scale " << (centre-m_samples[1]).norm() << std::endl;
 
     if(m_scale >= 0.25)
     {
@@ -235,7 +233,7 @@ void NonLinearSRegDiscreteModel::Initialize(const newresampler::Mesh& CONTROLGRI
     m_inputtree = std::make_shared<newresampler::Octree>(m_TARGET);
 }
 
-void NonLinearSRegDiscreteModel::get_rotations(vector<NEWMAT::Matrix>& ROT) {
+void NonLinearSRegDiscreteModel::get_rotations(std::vector<NEWMAT::Matrix>& ROT) {
 
     // rotates sampling grid to each control point
     ROT.clear();
@@ -284,7 +282,7 @@ void NonLinearSRegDiscreteModel::setupCostFunction() {
     m_num_labels = m_labels.size();
 
     costfct->set_labels(m_labels,m_ROT);
-    if(m_verbosity) cout << " initialize cost function " << m_iter <<  endl;
+    if(m_verbosity) std::cout << " initialize cost function " << m_iter <<  std::endl;
 
     costfct->initialize(m_num_nodes,m_num_labels,m_num_pairs,m_num_triplets);
     costfct->get_source_data();

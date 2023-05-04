@@ -2,6 +2,11 @@
 
 namespace newmeshreg {
 
+const char* MeshregException::what() const noexcept {
+    std::cout << errmesg << std::endl;
+    return errmesg;
+}
+
 void Neighbourhood::update(const newresampler::Mesh& source, const newresampler::Mesh& target, double ang, int numthreads) {
 
     angsep = ang;

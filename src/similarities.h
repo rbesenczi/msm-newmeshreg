@@ -3,7 +3,6 @@
 
 #include <miscmaths/bfmatrix.h>
 
-#include "meshregException.h"
 #include "reg_tools.h"
 
 namespace newmeshreg {
@@ -11,7 +10,7 @@ namespace newmeshreg {
 class sparsesimkernel{
 
 public:
-    sparsesimkernel(): mp(std::make_shared<MISCMATHS::SpMat<double>>()){}
+    sparsesimkernel(): mp(std::make_shared<MISCMATHS::SpMat<double>>()) {}
 
     //---FOR RIGID---//
     void Initialize(int);
@@ -24,7 +23,7 @@ public:
     void calculate_sim_column_nbh(int);
 
     //---FOR DISCRETE---//
-    inline double get_sim_for_min(const std::vector<double>& input, const std::vector<double>& reference, const std::vector<double>& weights){ //for discrete
+    inline double get_sim_for_min(const std::vector<double>& input, const std::vector<double>& reference, const std::vector<double>& weights) {
         return 1 - ( 1 + corr(input,reference, weights)) / 2;
     }
 private:
@@ -35,8 +34,8 @@ private:
 
     NEWMAT::RowVector _rmeanA, _rmeanB;
 
-    double _meanA, _meanB;
-    int _sim;
+    double _meanA = 0.0, _meanB = 0.0;
+    int _sim = 1;
 
     //---FOR RIGID---//
     double corr(int, int);

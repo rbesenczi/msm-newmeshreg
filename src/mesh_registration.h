@@ -78,7 +78,6 @@ private:
     std::string _dataformat = ".func";
 
     //---DATA OPTIONS---//
-    bool _logtransform = false; // logtransform and rescale the data
     bool _IN = false;
     bool _issparse = false;
 

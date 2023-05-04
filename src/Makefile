@@ -6,8 +6,7 @@ LIBS        = -lfsl-newresampler -lfsl-newimage -lfsl-miscmaths -lfsl-utils
 USRCXXFLAGS = -fopenmp
 USRINCFLAGS = -DHAS_HOCR
 
-OBJS       = reg_tools.o meshregException.o histogram2D.o \
-             featurespace.o similarities.o DiscreteCostFunction.o \
+OBJS       = reg_tools.o featurespace.o similarities.o DiscreteCostFunction.o \
              DiscreteModel.o Fusion.o  mesh_registration.o \
              rigid_costfunction.o FastPD.o graph.o
 

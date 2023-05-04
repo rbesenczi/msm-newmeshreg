@@ -1,7 +1,5 @@
 #include "DiscreteCostFunction.h"
 
-using namespace std;
-
 namespace newmeshreg {
 
 //================================BASE CLASS===========================================================================//
@@ -50,10 +48,10 @@ double DiscreteCostFunction::evaluateTotalCostSumZeroLabeling() {
         cost_sum_triplet += computeTripletCost(t, label, label, label);
 
     if(_debug)
-        cout << "cost_sum_unary " << cost_sum_unary << " cost_sum_pairwise "
+        std::cout << "cost_sum_unary " << cost_sum_unary << " cost_sum_pairwise "
         << cost_sum_pairwise  << " cost_sum_triplet " << cost_sum_triplet
         << " total " <<  cost_sum_unary + cost_sum_pairwise + cost_sum_triplet
-        << " m_num_triplets " << m_num_triplets <<   endl;
+        << " m_num_triplets " << m_num_triplets <<   std::endl;
 
     return cost_sum_unary + cost_sum_pairwise + cost_sum_triplet;
 }
@@ -74,10 +72,10 @@ double DiscreteCostFunction::evaluateTotalCostSum(const int *labeling, const int
         cost_sum_triplet += computeTripletCost(t, labeling[triplets[t * 3]], labeling[triplets[t * 3 + 1]], labeling[triplets[t * 3 + 2]]);
 
     if(_verbosity)
-        cout << "cost_sum_unary " << cost_sum_unary << " cost_sum_pairwise " << cost_sum_pairwise
+        std::cout << "cost_sum_unary " << cost_sum_unary << " cost_sum_pairwise " << cost_sum_pairwise
         << " cost_sum_triplet " << cost_sum_triplet
         <<" total " <<  cost_sum_unary + cost_sum_pairwise + cost_sum_triplet
-        << " m_num_triplets 2 " << m_num_triplets <<  endl;
+        << " m_num_triplets 2 " << m_num_triplets <<  std::endl;
 
     return cost_sum_unary + cost_sum_pairwise + cost_sum_triplet;
 }
@@ -128,22 +126,10 @@ void SRegDiscreteCostFunction::set_parameters(myparam& ALLPARAMS){
     it=ALLPARAMS.find("anatres"); _aRES=boost::get<int>(it->second);
     it=ALLPARAMS.find("simmeasure"); _simmeasure=boost::get<int>(it->second); sim.set_simval(_simmeasure);
     it=ALLPARAMS.find("verbosity"); _verbosity=boost::get<bool>(it->second);
-    it=ALLPARAMS.find("outdir"); _outdir=boost::get<string>(it->second);
+    it=ALLPARAMS.find("outdir"); _outdir=boost::get<std::string>(it->second);
     it=ALLPARAMS.find("regularisermode"); _rmode=boost::get<int>(it->second);
     it=ALLPARAMS.find("sigma_in"); _sigma=boost::get<float>(it->second);
     it=ALLPARAMS.find("numthreads"); _threads=boost::get<int>(it->second);
-    /*
-    it=ALLPARAMS.find("lambda"); _reglambda=std::get<float>(it->second);
-    it=ALLPARAMS.find("range"); _controlptrange=std::get<float>(it->second);
-    it=ALLPARAMS.find("CPres"); _RES=std::get<int>(it->second);
-    it=ALLPARAMS.find("anatres"); _aRES=std::get<int>(it->second);
-    it=ALLPARAMS.find("simmeasure"); _simmeasure=std::get<int>(it->second); sim.set_simval(_simmeasure);
-    it=ALLPARAMS.find("verbosity"); _verbosity=std::get<bool>(it->second);
-    it=ALLPARAMS.find("outdir"); _outdir=std::get<std::string>(it->second);
-    it=ALLPARAMS.find("regularisermode"); _rmode=std::get<int>(it->second);
-    it=ALLPARAMS.find("sigma_in"); _sigma=std::get<float>(it->second);
-    it=ALLPARAMS.find("numthreads"); _threads=std::get<int>(it->second);
-    */
 }
 
 newresampler::Mesh SRegDiscreteCostFunction::project_anatomical() {
@@ -153,7 +139,7 @@ newresampler::Mesh SRegDiscreteCostFunction::project_anatomical() {
     return newresampler::project_mesh(_aICOtrans,_TARGEThi,_aTARGET, _threads);
 }
 
-void SRegDiscreteCostFunction::reset_anatomical(const string &outdir, int iter) {
+void SRegDiscreteCostFunction::reset_anatomical(const std::string &outdir, int iter) {
 
     NEWMAT::ColumnVector strainstmp(_aSOURCE.ntriangles());
     double perc = 0;
@@ -207,7 +193,6 @@ void NonLinearSRegDiscreteCostFunction::initialize(int numNodes, int numLabels, 
 void NonLinearSRegDiscreteCostFunction::set_parameters(myparam& ALLPARAMS) {
 
     myparam::iterator it;
-    //it=ALLPARAMS.find("maxdistortion");_maxdist=boost::get<float>(it->second);
     it=ALLPARAMS.find("exponent");_rexp=boost::get<float>(it->second);
     it=ALLPARAMS.find("weight");_dweight=boost::get<bool>(it->second);
     it=ALLPARAMS.find("anorm");_anorm=boost::get<bool>(it->second);
@@ -215,20 +200,6 @@ void NonLinearSRegDiscreteCostFunction::set_parameters(myparam& ALLPARAMS) {
     it=ALLPARAMS.find("shearmodulus");_mu=boost::get<float>(it->second);
     it=ALLPARAMS.find("bulkmodulus");_kappa=boost::get<float>(it->second);
     it=ALLPARAMS.find("kexponent");_k_exp=boost::get<float>(it->second);
-    //it=ALLPARAMS.find("kNN");_kNN=boost::get<int>(it->second);
-    //it=ALLPARAMS.find("pottsthreshold");_pottsthreshold=boost::get<float>(it->second);
-    /*
-    it=ALLPARAMS.find("maxdistortion");_maxdist=std::get<float>(it->second);
-    it=ALLPARAMS.find("exponent");_rexp=std::get<float>(it->second);
-    it=ALLPARAMS.find("weight");_dweight=std::get<bool>(it->second);
-    it=ALLPARAMS.find("anorm");_anorm=std::get<bool>(it->second);
-    it=ALLPARAMS.find("scaling");_expscaling=std::get<float>(it->second);
-    it=ALLPARAMS.find("shearmodulus");_mu=std::get<float>(it->second);
-    it=ALLPARAMS.find("bulkmodulus");_kappa=std::get<float>(it->second);
-    it=ALLPARAMS.find("kexponent");_k_exp=std::get<float>(it->second);
-    it=ALLPARAMS.find("kNN");_kNN=std::get<int>(it->second);
-    it=ALLPARAMS.find("pottsthreshold");_pottsthreshold=std::get<float>(it->second);
-    */
     SRegDiscreteCostFunction::set_parameters(ALLPARAMS);
 }
 
@@ -274,8 +245,8 @@ double NonLinearSRegDiscreteCostFunction::computeTripletCost(int triplet, int la
                 newresampler::Triangle TRI_ORIG(_ORIG.get_coord(_triplets[3*triplet]),
                                                 _ORIG.get_coord(_triplets[3*triplet+1]),
                                                 _ORIG.get_coord(_triplets[3*triplet+2]), 0);
-                vector<double> deformed_angles = TRI.get_angles();
-                vector<double> orig_angles = TRI_ORIG.get_angles();
+                std::vector<double> deformed_angles = TRI.get_angles();
+                std::vector<double> orig_angles = TRI_ORIG.get_angles();
                 double distortion = log2(TRI.get_area()/TRI_ORIG.get_area());
 
                 if (_dweight && distortion != 1) tweight = exp(abs(distortion - 1));
@@ -301,15 +272,15 @@ double NonLinearSRegDiscreteCostFunction::computeTripletCost(int triplet, int la
             case 4:
             {
                 double diff = 0.0;
-                map<int,bool> moved2;
-                map<int,newresampler::Point> transformed_points;
+                std::map<int,bool> moved2;
+                std::map<int,newresampler::Point> transformed_points;
 
                 for (unsigned int n = 0; n < NEARESTFACES[triplet].size(); n++)
                 {
                     newresampler::Triangle TRIorig = _aSOURCE.get_triangle(NEARESTFACES[triplet][n]);
                     newresampler::Triangle TRItrans = deform_anatomy(triplet, n, vertex, moved2, transformed_points);
-                    vector<double> deformed_angles = TRItrans.get_angles();
-                    vector<double> orig_angles = TRIorig.get_angles();
+                    std::vector<double> deformed_angles = TRItrans.get_angles();
+                    std::vector<double> orig_angles = TRIorig.get_angles();
                     double distortion = log2(TRItrans.get_area()/TRIorig.get_area());
                     double tweight = 0.0;
                     if (_dweight && distortion != 1)
@@ -326,8 +297,8 @@ double NonLinearSRegDiscreteCostFunction::computeTripletCost(int triplet, int la
             }
             case 5:
             {
-                map<int,bool> moved2;
-                map<int,newresampler::Point> transformed_points;
+                std::map<int,bool> moved2;
+                std::map<int,newresampler::Point> transformed_points;
                 for (unsigned int n = 0; n < NEARESTFACES[triplet].size(); n++)
                 {
                     newresampler::Triangle TRIorig = _aSOURCE.get_triangle(NEARESTFACES[triplet][n]);
@@ -413,12 +384,12 @@ void  NonLinearSRegDiscreteCostFunction::computeUnaryCosts(){
             unarycosts[j * m_num_nodes + k] = computeUnaryCost(k, j);
 }
 
-newresampler::Triangle NonLinearSRegDiscreteCostFunction::deform_anatomy(int trip, int n, map<int,newresampler::Point>& vertex,
-                                                                    map<int,bool>& moved, map<int,newresampler::Point>& transformed) {
+newresampler::Triangle NonLinearSRegDiscreteCostFunction::deform_anatomy(int trip, int n, std::map<int,newresampler::Point>& vertex,
+                                                                         std::map<int,bool>& moved, std::map<int,newresampler::Point>& transformed) {
     newresampler::Triangle TRItrans;
     newresampler::Point newPt;
     int tindex;
-    map<int,double> weight;
+    std::map<int,double> weight;
 
     for(int i=0;i<3;i++)
     { // for each point in face
@@ -488,7 +459,7 @@ void NonLinearSRegDiscreteCostFunction::get_target_data(int node, const NEWMAT::
     _targetdata[node].clear();
     _targetdata[node].resize(_sourceinrange[node].size() * FEAT->get_dim());
 
-    #pragma omp parallel for num_threads(_threads)
+    //#pragma omp parallel for num_threads(_threads)
     for(unsigned int i = 0; i < _sourceinrange[node].size(); i++)
     {
         newresampler::Point tmp = PtROTATOR * _SOURCE.get_coord(_sourceinrange[node][i]);
@@ -544,7 +515,7 @@ void UnivariateNonLinearSRegDiscreteCostFunction::get_target_data(int node, cons
     _targetdata[node].clear();
     _targetdata[node].resize(_sourceinrange[node].size());
 
-    #pragma omp parallel for num_threads(_threads)
+    //#pragma omp parallel for num_threads(_threads)
     for(unsigned int i = 0; i < _sourceinrange[node].size(); i++)
     {
         newresampler::Point tmp = PtROTATOR * _SOURCE.get_coord(_sourceinrange[node][i]);
@@ -613,7 +584,7 @@ void MultivariateNonLinearSRegDiscreteCostFunction::get_source_data() {
 
 void MultivariateNonLinearSRegDiscreteCostFunction::get_target_data(int node, const NEWMAT::Matrix& PtROTATOR) {
 
-    #pragma omp parallel for num_threads(_threads)
+    //#pragma omp parallel for num_threads(_threads)
     for(unsigned int i = 0; i < _sourceinrange[node].size(); i++)
     {
         _targetdata[_sourceinrange[node][i]].clear();
@@ -697,7 +668,7 @@ void HOUnivariateNonLinearSRegDiscreteCostFunction::get_target_data(int triplet,
     newresampler::Point CP1 = _CPgrid.get_coord(_triplets[3*triplet+1]);
     newresampler::Point CP2 = _CPgrid.get_coord(_triplets[3*triplet+2]);
 
-    #pragma omp parallel for num_threads(_threads)
+    //#pragma omp parallel for num_threads(_threads)
     for(int i = 0; i < _sourceinrange[triplet].size(); ++i)
     {
         newresampler::Point SP = _SOURCE.get_coord(_sourceinrange[triplet][i]);
@@ -776,7 +747,7 @@ void HOMultivariateNonLinearSRegDiscreteCostFunction::get_target_data(int triple
     newresampler::Point CP1 = _CPgrid.get_coord(_triplets[3*triplet+1]);
     newresampler::Point CP2 = _CPgrid.get_coord(_triplets[3*triplet+2]);
 
-    #pragma omp parallel for num_threads(_threads)
+    //#pragma omp parallel for num_threads(_threads)
     for(int i = 0; i < _sourceinrange[triplet].size(); ++i)
     {
         _targetdata[_sourceinrange[triplet][i]].clear();

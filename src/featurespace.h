@@ -1,13 +1,7 @@
 #ifndef NEWMESHREG_FEATURESPACE_H
 #define NEWMESHREG_FEATURESPACE_H
 
-#include <fstream>
-#include <cstdio>
-#include <memory>
-#include <vector>
-
 #include "newresampler/resampler.h"
-#include "meshregException.h"
 #include "reg_tools.h"
 
 #define RAD 100.0

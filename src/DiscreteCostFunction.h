@@ -1,9 +1,6 @@
 #ifndef NEWMESHREG_DISCRETECOSTFUNCTION_H
 #define NEWMESHREG_DISCRETECOSTFUNCTION_H
 
-#include <boost/variant/variant.hpp>
-#include <boost/variant/get.hpp>
-#include <memory>
 #include <omp.h>
 #include "featurespace.h"
 #include "newresampler/resampler.h"

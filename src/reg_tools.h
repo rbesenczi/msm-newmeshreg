@@ -12,6 +12,16 @@ namespace newmeshreg {
 typedef std::map<std::string, boost::variant<int, std::string, double, float, bool>> myparam;
 typedef std::pair<std::string, boost::variant<int, std::string, double, float, bool>> parameterPair;
 
+class MeshregException : public std::exception {
+
+public:
+    const char* errmesg;
+
+    explicit MeshregException(const char* msg) : errmesg(msg) {}
+
+    const char* what() const noexcept override;
+};
+
 class Neighbourhood {
 
     std::vector<std::vector<int>> neighbours;

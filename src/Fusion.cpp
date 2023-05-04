@@ -59,10 +59,12 @@ double Fusion::optimize(const std::shared_ptr<DiscreteModel>& energy, Reduction 
 
             std::vector<UnaryData> unary_data(energy->getNumNodes());
 
+            #pragma omp parallel for num_threads(8)
             for(int node = 0; node < energy->getNumNodes(); ++node)
             {
                 unary_data[node].buffer[0] = energy->computeUnaryCost(node,labeling[node]);	//0
                 unary_data[node].buffer[1] = energy->computeUnaryCost(node,label);				//1
+                #pragma omp critical
                 sumlabeldiff += abs(label-labeling[node]);
             }
 
@@ -73,6 +75,7 @@ double Fusion::optimize(const std::shared_ptr<DiscreteModel>& energy, Reduction 
 
                 std::vector<TripletData> triplet_data(energy->getNumTriplets());
 
+                #pragma omp parallel for num_threads(8)
                 for (int triplet = 0; triplet < energy->getNumTriplets(); ++triplet)
                 {
                     const int nodeA = triplets[triplet*3];

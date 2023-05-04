@@ -117,17 +117,8 @@ void Mesh_registration::initialize_level(int current_lvl) {
     if(cost[current_lvl] == "DISCRETE")
     {
         isrigid = false;
-        bool multivariate;
-        if(FEAT->get_dim() == 1)
-        {
-            multivariate = false;
-            if (_simval[current_lvl] == 4)
-                throw MeshregException("MeshREG ERROR:: simval option 4 (alphaMI) is not suitable for univariate costfunctions");
-        }
-        else
-            multivariate = true;
 
-        PARAMETERS.insert(parameterPair("multivariate",multivariate));
+        PARAMETERS.insert(parameterPair("multivariate",FEAT->get_dim() > 1));
 
         model = std::shared_ptr<SRegDiscreteModel>(new NonLinearSRegDiscreteModel(PARAMETERS));
 
@@ -302,20 +293,6 @@ void Mesh_registration::save_transformed_data(const std::string& filename) {
     std::shared_ptr<MISCMATHS::BFMatrix> DATA, DATAREF;
     std::shared_ptr<newresampler::Mesh> IN_EXCL, REF_EXCL;
 
-    /*
-    if(_usetraining)
-    {
-        set_data(CMfile_in,DATA,MESHES[0]);
-
-        newresampler::Mesh tmp;
-
-        tmp = newresampler::metric_resample(MESHES[0], MESHES[1], _numthreads, IN_EXCL);
-
-        DATA = std::make_shared<MISCMATHS::FullBFMatrix>(tmp.get_pvalues());
-    }
-    else
-    {
-    */
     // binarize costfunction weights for use as exclusion masks during resampling
     set_data(CMfile_in,DATA,MESHES[0]);
     set_data(CMfile_ref,DATAREF,MESHES[1]);
@@ -337,7 +314,6 @@ void Mesh_registration::save_transformed_data(const std::string& filename) {
     tmp = newresampler::metric_resample(MESHES[0], MESHES[1], _numthreads, IN_EXCL);
 
     DATA = std::make_shared<MISCMATHS::FullBFMatrix>(tmp.get_pvalues());
-    //}
 
     newresampler::Mesh TRANSFORMED = MESHES[1];
     std::shared_ptr<MISCMATHS::FullBFMatrix > pin = std::dynamic_pointer_cast<MISCMATHS::FullBFMatrix>(DATA);
