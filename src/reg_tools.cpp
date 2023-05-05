@@ -507,13 +507,15 @@ NEWMAT::ColumnVector calculate_strains(int index, const std::vector<int>& kept, 
     return STRAINS;
 }
 
-newresampler::Mesh calculate_strains(double fit_radius, const newresampler::Mesh& orig, const newresampler::Mesh &final, const std::shared_ptr<NEWMAT::Matrix>& PrincipalStretches){
+newresampler::Mesh calculate_strains(double fit_radius, const newresampler::Mesh& orig, const newresampler::Mesh &final,
+                                     int numthreads, const std::shared_ptr<NEWMAT::Matrix>& PrincipalStretches){
 
     newresampler::Mesh strain = final;
     NEWMAT::Matrix strains(4, orig.nvertices());
 
     if(PrincipalStretches) PrincipalStretches->ReSize(orig.nvertices(), 6);
 
+    #pragma omp parallel for num_threads(numthreads)
     for (int index = 0; index < orig.nvertices(); index++)
     {
         std::vector<int> kept;
@@ -527,9 +529,9 @@ newresampler::Mesh calculate_strains(double fit_radius, const newresampler::Mesh
                 double dist = (orig.get_coord(index) - orig.get_coord(j)).norm();
                 // reject points with normals in opposite directions
                 double dir_chk1 = orig.get_normal(j) | orig.get_normal(index);
-                double dir_chk2 = 1;
+                //double dir_chk2 = 1;
 
-                if(dist <= fit_temp && dir_chk1 >= 0 && dir_chk2 >= 0)
+                if(dist <= fit_temp && dir_chk1 >= 0/* && dir_chk2 >= 0*/)
                     kept.push_back(j);
             }
 
@@ -698,34 +700,6 @@ double calculate_triangular_strain(int index, const newresampler::Mesh& ORIG, co
     return W;
 }
 
-newresampler::Mesh calculate_triangular_strains(const newresampler::Mesh& ORIG, const newresampler::Mesh& FINAL, double MU, double KAPPA) {
-
-    newresampler::Mesh STRAIN = FINAL;
-    NEWMAT::Matrix STRAINS(3,ORIG.ntriangles());
-
-    // get normals
-    for (int index = 0; index < ORIG.ntriangles(); index++)
-    {
-        std::shared_ptr<NEWMAT::ColumnVector> strainstmp = std::make_shared<NEWMAT::ColumnVector>(2);
-        STRAINS(3,index + 1) = calculate_triangular_strain(index, ORIG, FINAL, MU, KAPPA, strainstmp);
-        STRAINS(1,index+1) = (*strainstmp)(1);
-        STRAINS(2,index+1) = (*strainstmp)(2);
-    }
-
-    for (int index = 0; index < ORIG.nvertices(); index++)
-        for (int j = 0; j < 3; j++)
-        {
-            double SUM = 0.0;
-            for (auto i = ORIG.tIDbegin(index); i != ORIG.tIDend(index); i++)
-                SUM += STRAINS(j + 1, *i + 1);
-
-            SUM /= ORIG.get_total_triangles(index);
-            STRAIN.set_pvalue(index, SUM, j);
-        }
-
-    return STRAIN;
-}
-
 double calculate_triangular_strain(const newresampler::Triangle& ORIG_tr, const newresampler::Triangle& FINAL_tr, double mu, double kappa,
                                    const std::shared_ptr<NEWMAT::ColumnVector>& indexSTRAINS, double k_exp) {
 
@@ -771,47 +745,6 @@ double calculate_triangular_strain(const newresampler::Triangle& ORIG_tr, const 
     W = triangle_strain(ORIG2D, FINAL2D, mu, kappa, indexSTRAINS, k_exp);
 
     return W;
-}
-
-void get_range(int dim, const MISCMATHS::BFMatrix& M, const NEWMAT::ColumnVector& excluded, double& min, double& max) {
-
-    max = std::numeric_limits<double>::lowest();
-    min = std::numeric_limits<double>::max();
-
-    for (unsigned int i = 1; i <= M.Ncols(); i++)
-    {
-        if (M.Peek(dim, i) > max && excluded(i) != 0)
-            max = M.Peek(dim, i);
-        if (M.Peek(dim, i) < min && excluded(i) != 0)
-            min = M.Peek(dim, i);
-    }
-}
-
-void set_range(int dim, MISCMATHS::BFMatrix& M, const NEWMAT::ColumnVector& excluded, double& min, double& max) {
-
-    double nmin = std::numeric_limits<double>::max(),
-           nmax = std::numeric_limits<double>::lowest(),
-           range = max - min;
-    double nval = 0.0, val = 0.0;
-
-    for (unsigned int i = 1; i <= M.Ncols(); i++)
-    {
-        if (M.Peek(dim, i) > nmax && excluded(i) != 0)
-            nmax = M.Peek(dim, i);
-        if (M.Peek(dim, i) < nmin && excluded(i) != 0)
-            nmin = M.Peek(dim, i);
-    }
-
-    double nrange = nmax - nmin;
-
-    for (unsigned int i = 1; i <= M.Ncols(); i++)
-        if (excluded(i) != 0)
-        {
-            nval = (M.Peek(dim, i) - nmin) / nrange;
-            val = nmin + nval * range;
-            M.Set(dim, i, val);
-        }
-
 }
 
 void multivariate_histogram_normalization(MISCMATHS::BFMatrix& IN, MISCMATHS::BFMatrix& REF,

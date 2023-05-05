@@ -257,7 +257,7 @@ void NonLinearSRegDiscreteModel::setupCostFunction() {
         costfct->set_octrees(m_inputtree);
     }
 
-    costfct->reset_anatomical(m_outdir, m_iter);
+    costfct->reset_anatomical();
     get_rotations(m_ROT);
     // instead of recalulating the source->CP neighbours, these are now constant
     // (as source is moving with CPgrid) we we just need to recalculate

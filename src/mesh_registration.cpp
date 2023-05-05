@@ -273,7 +273,7 @@ void Mesh_registration::save_transformed_data(const std::string& filename) {
         in_anat.estimate_normals();
         ANAT_TRANS.estimate_normals();
         if(_verbose) std::cout << "Calculate strains." << std::endl;
-        newresampler::Mesh STRAINSmesh = calculate_strains(2, in_anat, ANAT_TRANS);
+        newresampler::Mesh STRAINSmesh = calculate_strains(2, in_anat, ANAT_TRANS, _numthreads);
         STRAINSmesh.save(_outdir + "STRAINS.func");
     }
 }

@@ -31,10 +31,10 @@ public:
     Neighbourhood() = default;
     void update(const newresampler::Mesh& source, const newresampler::Mesh& target, double ang, int numthreads = 1);
 
-    inline unsigned long nrows(int i) const { return neighbours.at(i).size(); }
-    inline int operator()(int i, int j) const { return neighbours.at(i).at(j); }
-    std::vector<int>& at(int i) { return neighbours.at(i); }
-    const std::vector<int>& at(int i) const { return neighbours.at(i); }
+    inline unsigned long nrows(int i) const { return neighbours[i].size(); }
+    inline int operator()(int i, int j) const { return neighbours[i][j]; }
+    std::vector<int>& at(int i) { return neighbours[i]; }
+    const std::vector<int>& at(int i) const { return neighbours[i]; }
 };
 
 bool get_all_neighbours(int index, std::vector<int>& N, const newresampler::Point& point, int n,
@@ -55,15 +55,12 @@ newresampler::Tangs calculate_tri(const newresampler::Point& a);
 //---STRAINS---//
 NEWMAT::Matrix get_coordinate_transformation(double dNdT1,double dNdT2, NEWMAT::ColumnVector& Norm);
 NEWMAT::ColumnVector calculate_strains(int index, const std::vector<int>& kept, const newresampler::Mesh& orig, const newresampler::Mesh& final, const std::shared_ptr<NEWMAT::Matrix>& PrincipalStretches);
-newresampler::Mesh calculate_strains(double fit_radius, const newresampler::Mesh& orig, const newresampler::Mesh& final, const std::shared_ptr<NEWMAT::Matrix>& PrincipalStretches = std::shared_ptr<NEWMAT::Matrix>());
+newresampler::Mesh calculate_strains(double fit_radius, const newresampler::Mesh& orig, const newresampler::Mesh& final, int numthreads = 1, const std::shared_ptr<NEWMAT::Matrix>& PrincipalStretches = std::shared_ptr<NEWMAT::Matrix>());
 double triangle_strain(const NEWMAT::Matrix& AA, const NEWMAT::Matrix & BB, double MU, double KAPPA, const std::shared_ptr<NEWMAT::ColumnVector>& strains, double k_exp);
 double calculate_triangular_strain(int index, const newresampler::Mesh& ORIG, const newresampler::Mesh& FINAL, double mu, double kappa, const std::shared_ptr<NEWMAT::ColumnVector>& indexSTRAINS = std::shared_ptr<NEWMAT::ColumnVector>(), double k_exp = 2.0);
-newresampler::Mesh calculate_triangular_strains(const newresampler::Mesh& ORIG, const newresampler::Mesh& FINAL, double MU, double KAPPA);
 double calculate_triangular_strain(const newresampler::Triangle& ORIG_tr, const newresampler::Triangle& FINAL_tr, double mu, double kappa, const std::shared_ptr<NEWMAT::ColumnVector>& indexSTRAINS = std::shared_ptr<NEWMAT::ColumnVector>(), double k_exp = 2.0);
 
 //---HIST NORMALISATION---//
-void get_range(int dim, const MISCMATHS::BFMatrix& M, const NEWMAT::ColumnVector& excluded, double& min, double& max);
-void set_range(int dim, MISCMATHS::BFMatrix& M, const NEWMAT::ColumnVector& excluded, double& min, double& max);
 void multivariate_histogram_normalization(MISCMATHS::BFMatrix& IN, MISCMATHS::BFMatrix& REF, const std::shared_ptr<newresampler::Mesh>& EXCL_IN, const std::shared_ptr<newresampler::Mesh>& EXCL_REF, int nthreads = 1);
 
 //---READ DATA---//
