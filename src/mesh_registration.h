@@ -5,9 +5,13 @@
 
 #include "rigid_costfunction.h"
 #include "newresampler/resampler.h"
+#include "DiscreteModel.h"
 
 #ifdef HAS_HOCR
-#include "Fusion.h"
+#include "Fusion/Fusion.h"
+#endif
+#ifdef HAS_FPD
+#include "FastPD/FastPD.h"
 #endif
 
 namespace newmeshreg {
@@ -81,7 +85,7 @@ private:
     bool _IN = false;
     bool _issparse = false;
 
-    std::string _discreteOPT = "FastPD";
+    std::string _discreteOPT;
 
     //---REGISTRATION PARAMETERS---//
     myparam PARAMETERS;

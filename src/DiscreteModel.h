@@ -77,57 +77,6 @@ protected:
     int _nthreads = 1;
 };
 
-class DiscreteModelDummy : public DiscreteModel {
-
-public:
-    DiscreteModelDummy() {
-        costfct = std::make_shared<DummyCostFunction>();
-        m_num_pairs = 0; m_num_nodes = 0; m_num_labels = 2;
-    }
-
-    // create dummy costfunction to be used with dummy model (will just save output of conversion)
-    std::shared_ptr<DiscreteCostFunction> getCostFunction() override { return costfct; }
-
-    //---ELC conversion functions---//
-    void AddNode(int num){ m_num_nodes = num; }
-
-    // Adds unary term Ei(x_i) to the energy function with cost values Ei(0)=E0, Ei(1)=E1.
-    void AddUnaryTerm(int node, double E0, double E1) { costfct->setUnaryCost(node,E0, E1); }
-
-    // adds pairwise term for binary costs with label combinations 00,01,10,11
-    void AddPairwiseTerm(int node1, int node2, double E00, double E01, double E10, double E11) {
-        pairIDs.insert(std::pair<int,std::vector<int>>(m_num_pairs, std::vector<int>()));
-        pairIDs[m_num_pairs].push_back(node1);
-        pairIDs[m_num_pairs].push_back(node2);
-        costfct->setPairwiseCost(m_num_pairs,E00,E01,E10,E11);
-        m_num_pairs++;
-    }
-
-    // FastPD conversion functions
-    void initialise(){
-        initLabeling();
-        costfct->convertenergies(m_num_nodes,m_num_pairs,2);
-        pairs = new int[m_num_pairs * 2];
-        for(int i = 0; i < m_num_pairs; i++)
-        {
-            pairs[2 * i] = pairIDs[i][0];
-            pairs[2 * i + 1] = pairIDs[i][1];
-        }
-    }
-
-    void reset() {
-        pairIDs.clear();
-        m_num_pairs = 0;
-        m_num_nodes = 0;
-        m_num_labels = 2;
-        costfct->reset();
-    }
-
-protected:
-    std::map<int,std::vector<int>> pairIDs;
-    std::shared_ptr<DummyCostFunction> costfct;
-};
-
 class SRegDiscreteModel : public DiscreteModel {
 
 public:

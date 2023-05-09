@@ -350,13 +350,19 @@ void Mesh_registration::run_discrete_opt(newresampler::Mesh& source) {
         int* Labels = model->getLabeling();
         if(_verbose) std::cout << "Run optimisation." << std::endl;
 
-        if(_discreteOPT == "FastPD")
+        if(_discreteOPT == "MCMC")
         {
+            //placeholder...
+        }
+        else if(_discreteOPT == "FastPD")
+        {
+#ifdef HAS_FPD
             model->computeUnaryCosts();
             model->computePairwiseCosts();
             FPD::FastPD opt(model, 100);
             newenergy = opt.run();
             opt.getLabeling(Labels);
+#endif
         }
         else
         {
@@ -747,7 +753,6 @@ void Mesh_registration::parse_reg_options(const std::string &parameters)
                           << " Affine grad sampling: " << _affinegradsampling;
                 break;
             }
-        if(tricliquelikeihood.set()) std::cout << "\nTriclique likelihood set.";
         if(variancenormalize.set()) std::cout << "\nVariance normalise set.";
         if(intensitynormalize.set()) std::cout << "\nIntensity normalise set.";
         if(intensitynormalizewcut.set()) std::cout << "\nIntensity normalise with cut set.";

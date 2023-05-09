@@ -63,63 +63,6 @@ protected:
     bool _verbosity = false;
 };
 
-// should be able to implement affine spherical registration using discrete labels represent fixed rotations
-class DummyCostFunction: public DiscreteCostFunction {
-
-public:
-    DummyCostFunction(){ m_num_labels = 2; }
-
-    void setUnaryCost(int node, double cost0, double cost1){
-        unaryenergies.insert(std::pair<int, std::vector<double>>(node, std::vector<double>()));
-        unaryenergies[node].push_back(cost0);
-        unaryenergies[node].push_back(cost1);
-    }
-
-    void setPairwiseCost(int ind, double E00, double E01, double E10, double E11) {
-        pairenergies.insert(std::pair<int, std::vector<double>>(ind, std::vector<double>()));
-        pairenergies[ind].push_back(E00);
-        pairenergies[ind].push_back(E01);
-        pairenergies[ind].push_back(E10);
-        pairenergies[ind].push_back(E11);
-    }
-
-    double computePairwiseCost(int pair, int labelA, int labelB) override {
-        if(labelA == 0 && labelB == 0)
-            return pairenergies[pair][0];
-        else if (labelA==0 && labelB==1)
-            return pairenergies[pair][1];
-        else if (labelA==1 && labelB==0)
-            return pairenergies[pair][2];
-        else
-            return pairenergies[pair][3];
-    }
-
-    void convertenergies(int numNodes,int numPairs, int numLabels) {
-
-        m_num_nodes = numNodes;
-        m_num_labels = numLabels;
-        m_num_pairs = numPairs;
-
-        delete[] unarycosts;
-        unarycosts = new double[numNodes*numLabels];
-
-        for (int i = 0; i < numLabels; i++)
-            for (int j = 0; j < numNodes; j++)
-                unarycosts[i * numNodes + j] = unaryenergies[j][i];
-    }
-
-    void reset() override {
-        unaryenergies.clear();
-        pairenergies.clear();
-    }
-
-    void set_parameters(myparam &) override {}
-
-protected:
-    std::map<int,std::vector<double>> unaryenergies; // maps of nodes  xlabels x vals
-    std::map<int,std::vector<double>> pairenergies;
-};
-
 class SRegDiscreteCostFunction: public DiscreteCostFunction {
 
 public:
