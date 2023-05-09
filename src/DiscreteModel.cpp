@@ -2,7 +2,7 @@
 
 namespace newmeshreg {
 
-//---SRegDiscreteModel---//
+//-------------------SRegDiscreteModel-------------------//
 void SRegDiscreteModel::set_parameters(myparam& PAR) {
     myparam::iterator it;
     it=PAR.find("SGres"); m_SGres = boost::get<int>(it->second);
@@ -24,10 +24,10 @@ void SRegDiscreteModel::initialize_cost_function(bool MV, myparam& P) {
         else
             costfct = std::shared_ptr<SRegDiscreteCostFunction>(new MultivariateNonLinearSRegDiscreteCostFunction());
     else
-    if (m_triclique)
-        costfct = std::shared_ptr<SRegDiscreteCostFunction>(new HOUnivariateNonLinearSRegDiscreteCostFunction());
-    else
-        costfct = std::shared_ptr<SRegDiscreteCostFunction>(new UnivariateNonLinearSRegDiscreteCostFunction());
+        if (m_triclique)
+            costfct = std::shared_ptr<SRegDiscreteCostFunction>(new HOUnivariateNonLinearSRegDiscreteCostFunction());
+        else
+            costfct = std::shared_ptr<SRegDiscreteCostFunction>(new UnivariateNonLinearSRegDiscreteCostFunction());
 
     costfct->set_parameters(P);
 }
@@ -176,7 +176,7 @@ std::vector<newresampler::Point> SRegDiscreteModel::rescale_sampling_grid() {
     return newlabels;
 }
 
-//---NonLinearSRegDiscreteModel---//
+//-------------------NonLinearSRegDiscreteModel-------------------//
 void NonLinearSRegDiscreteModel::Initialize(const newresampler::Mesh& CONTROLGRID) {
 
     SRegDiscreteModel::Initialize(CONTROLGRID);
@@ -192,6 +192,60 @@ void NonLinearSRegDiscreteModel::Initialize(const newresampler::Mesh& CONTROLGRI
 
     //---INITIALIZE NEIGHBOURHOODS---//
     m_inputtree = std::make_shared<newresampler::Octree>(m_TARGET);
+}
+
+void NonLinearSRegDiscreteModel::setupCostFunction() {
+
+    resetLabeling(); // initialise label array to zero
+    //---use geodesic distances---//
+    costfct->reset_CPgrid(m_CPgrid);
+
+    if(m_iter == 1)
+    {
+        costfct->initialize_regulariser();
+        costfct->set_octrees(m_inputtree);
+    }
+
+    costfct->reset_anatomical();
+    get_rotations(m_ROT);
+    // instead of recalulating the source->CP neighbours, these are now constant
+    // (as source is moving with CPgrid) we we just need to recalculate
+    // the rotations of the label grid to the cp vertices
+
+    if(m_debug)
+    {
+        m_SOURCE.save(m_outdir + "SOURCE-" + std::to_string(m_iter) + ".surf");
+        m_SOURCE.save(m_outdir + "SOURCE-" + std::to_string(m_iter) + ".func");
+        if (m_iter == 1) m_TARGET.save(m_outdir + "TARGET.surf");
+        m_CPgrid.save(m_outdir + "CPgrid-" + std::to_string(m_iter) + ".surf");
+    }
+
+    //---set samples (labels vary from iter to iter)---//
+    if (m_rescalelabels)
+        m_labels = rescale_sampling_grid();
+    else if (m_iter % 2 == 0)
+        m_labels = m_samples;
+    else
+        m_labels = m_barycentres;
+
+    m_num_labels = m_labels.size();
+
+    costfct->set_labels(m_labels,m_ROT);
+    if(m_verbosity) std::cout << " initialize cost function " << m_iter <<  std::endl;
+
+    costfct->initialize(m_num_nodes,m_num_labels,m_num_pairs,m_num_triplets);
+    costfct->get_source_data();
+
+    if(_pairwise) costfct->setPairs(pairs);
+    else costfct->setTriplets(triplets);
+    m_iter++;
+}
+
+void NonLinearSRegDiscreteModel::applyLabeling() {
+
+    // rotate sampling points to overlap with control point transform grid point to new position given by label
+    for (int i = 0; i < m_CPgrid.nvertices(); i++)
+        m_CPgrid.set_coord(i, m_ROT[i] * m_labels[labeling[i]]);
 }
 
 void NonLinearSRegDiscreteModel::estimate_pairs() {
@@ -243,63 +297,6 @@ void NonLinearSRegDiscreteModel::get_rotations(std::vector<NEWMAT::Matrix>& ROT)
     #pragma omp parallel for num_threads(_nthreads)
     for (int k = 0; k < m_CPgrid.nvertices(); k++)
         ROT[k] = estimate_rotation_matrix(ci, m_CPgrid.get_coord(k));
-}
-
-void NonLinearSRegDiscreteModel::setupCostFunction() {
-
-    resetLabeling(); // initialise label array to zero
-    //---use geodesic distances---//
-    costfct->reset_CPgrid(m_CPgrid);
-
-    if(m_iter == 1)
-    {
-        costfct->initialize_regulariser();
-        costfct->set_octrees(m_inputtree);
-    }
-
-    costfct->reset_anatomical();
-    get_rotations(m_ROT);
-    // instead of recalulating the source->CP neighbours, these are now constant
-    // (as source is moving with CPgrid) we we just need to recalculate
-    // the rotations of the label grid to the cp vertices
-
-    if(m_debug)
-    {
-        m_SOURCE.save(m_outdir + "SOURCE-" + std::to_string(m_iter) + ".surf");
-        m_SOURCE.save(m_outdir + "SOURCE-" + std::to_string(m_iter) + ".func");
-        if (m_iter == 1) m_TARGET.save(m_outdir + "TARGET.surf");
-        m_CPgrid.save(m_outdir + "CPgrid-" + std::to_string(m_iter) + ".surf");
-    }
-
-    //---set samples (labels vary from iter to iter)---//
-    if (m_rescalelabels)
-        m_labels = rescale_sampling_grid();
-    else if (m_iter % 2 == 0)
-        m_labels = m_samples;
-    else
-        m_labels = m_barycentres;
-
-    m_num_labels = m_labels.size();
-
-    costfct->set_labels(m_labels,m_ROT);
-    if(m_verbosity) std::cout << " initialize cost function " << m_iter <<  std::endl;
-
-    costfct->initialize(m_num_nodes,m_num_labels,m_num_pairs,m_num_triplets);
-    costfct->get_source_data();
-
-    if(_pairwise) costfct->setPairs(pairs);
-    else costfct->setTriplets(triplets);
-    m_iter++;
-}
-
-void NonLinearSRegDiscreteModel::applyLabeling(int* dlabels) {
-
-    // rotate sampling points to overlap with control point transform grid point to new position given by label
-    if (dlabels)
-    {
-        for (int i = 0; i < m_CPgrid.nvertices(); i++)
-            m_CPgrid.set_coord(i, m_ROT[i] * m_labels[dlabels[i]]);
-    }
 }
 
 } //namespace newmeshreg
