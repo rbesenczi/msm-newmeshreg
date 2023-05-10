@@ -1,10 +1,7 @@
 #ifndef NEWMESHREG_FUSION_H
 #define NEWMESHREG_FUSION_H
 
-#ifdef HAS_HOCR
 #include "ELC/ELC.h"
-#endif
-
 #include "DiscreteCostFunction.h"
 #include "FastPD.h"
 
@@ -14,16 +11,14 @@ typedef	double REAL;
 struct UnaryData	{ REAL buffer[2]; };
 struct TripletData	{ REAL buffer[8]; };
 
-namespace ELCReduce { template<typename T> class PBF; }
-
 namespace newmeshreg {
 
 class DummyCostFunction: public DiscreteCostFunction {
 
 public:
-    DummyCostFunction(){ m_num_labels = 2; }
+    DummyCostFunction() { m_num_labels = 2; }
 
-    void setUnaryCost(int node, double cost0, double cost1){
+    void setUnaryCost(int node, double cost0, double cost1) {
         unaryenergies.insert(std::pair<int, std::vector<double>>(node, std::vector<double>()));
         unaryenergies[node].push_back(cost0);
         unaryenergies[node].push_back(cost1);
@@ -67,13 +62,12 @@ public:
         pairenergies.clear();
     }
 
-    void set_parameters(myparam&){}
+    void set_parameters(myparam&) override {}
 
 protected:
     std::map<int,std::vector<double>> unaryenergies; // maps of nodes  xlabels x vals
     std::map<int,std::vector<double>> pairenergies;
 };
-
 
 class DiscreteModelDummy : public DiscreteModel {
 
@@ -126,47 +120,9 @@ protected:
     std::shared_ptr<DummyCostFunction> costfct;
 };
 
-enum Reduction { ELC_HOCR, ELC_APPROX, HOCR };
-
 class Fusion {
 public:
-
-    template<typename OPTIMIZER>
-    static void reduce_and_convert(ELCReduce::PBF<REAL>& pbf, OPTIMIZER& MODEL, Reduction mode) {
-
-        switch(mode)
-        {
-            case ELC_HOCR:
-            {
-                ELCReduce::PBF<REAL> qpbf;
-                pbf.reduceHigher();
-                pbf.toQuadratic(qpbf, pbf.maxID()+1);
-                // Reduce the remaining higher-order terms using HOCR adding auxiliary variables
-                qpbf.convert(MODEL, qpbf.maxID()+1);
-                pbf.clear();
-                qpbf.clear();
-                break;
-            }
-            case ELC_APPROX:
-            {
-                pbf.reduceHigherApprox();
-                pbf.convert(MODEL, pbf.maxID()+1);
-                pbf.clear();
-                break;
-            }
-            case HOCR:
-            {
-                ELCReduce::PBF<REAL> qpbf;
-                pbf.toQuadratic(qpbf, pbf.maxID()+1); // Reduce to Quadratic pseudo-Boolean function using HOCR.
-                qpbf.convert(MODEL, qpbf.maxID()+1);
-                pbf.clear();
-                qpbf.clear();
-                break;
-            }
-        }
-    }
-
-    static double optimize(const std::shared_ptr<DiscreteModel>& energy, Reduction reductionMode, bool verbose, int numthreads) {
+    static double optimize(const std::shared_ptr<DiscreteModel>& energy, bool verbose, int numthreads) {
 
         const int *triplets = energy->getTriplets();
         int *labeling = energy->getLabeling();
@@ -231,7 +187,13 @@ public:
                     }
 
                     FPDMODEL->reset();
-                    reduce_and_convert(pbf,*FPDMODEL, reductionMode);
+
+                    ELCReduce::PBF<REAL> qpbf;
+                    pbf.toQuadratic(qpbf, pbf.maxID()+1); // Reduce to Quadratic pseudo-Boolean function using HOCR.
+                    qpbf.convert(*FPDMODEL, qpbf.maxID()+1);
+                    pbf.clear();
+                    qpbf.clear();
+
                     FPDMODEL->initialise();
                     int* Labels = FPDMODEL->getLabeling();
 
@@ -261,9 +223,8 @@ public:
                 }
             }
         }
-#ifndef PRINT_ENERGY
         lastEnergy = energy->evaluateTotalCostSum();
-#endif
+
         return lastEnergy;
     }
 };

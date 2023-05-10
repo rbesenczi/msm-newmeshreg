@@ -38,6 +38,7 @@ public:
     virtual double computePairwiseCost(int pair, int labelA, int labelB) { return 0; } //Computes the pairwise potential for a the given pair and labels.
 
     virtual double computeTripletCost(int triplet, int labelA, int labelB, int labelC) { return 0; } //Computes the triplet potential for a the given triplet and labels.
+
     virtual double evaluateTotalCostSum(const int *labeling, const int *pairs, const int *triplets); //Evaluates the total cost for the given labeling.
 
     virtual void set_parameters(myparam&) = 0;
@@ -59,6 +60,7 @@ protected:
 
     float _reglambda = 0.0;  // scaling parameter for regulariser
 
+    int _threads = 1;
     bool _debug = false;
     bool _verbosity = false;
 };
@@ -153,15 +155,14 @@ protected:
     double sumlikelihood = 0.0;
     double sumregcost = 0.0;
 
-    float _mu = 0.0; // shear modulus
-    float _kappa = 0.0; // bulk modulus
-    float _rexp = 0.0;
+    float _mu = 0.4; // shear modulus
+    float _kappa = 1.6; // bulk modulus
+    float _rexp = 2.0;
 
     //---USER DEFINED PARAMETERS---//
     int _simmeasure = 2;
     int  _rmode = 1;
-    int _threads = 1;
-    float _k_exp = 0.0;
+    float _k_exp = 2.0;
     double MAXstrain = 0.0;
 
     std::vector<std::vector<double>> _sourcedata;
@@ -179,7 +180,7 @@ protected:
     NEWMAT::ColumnVector AbsoluteWeights;
 
 public:
-    NonLinearSRegDiscreteCostFunction();
+    NonLinearSRegDiscreteCostFunction() = default;
 
     void initialize(int numNodes, int numLabels, int numPairs, int numTriplets) override;
     void set_parameters(myparam&) override;

@@ -367,18 +367,7 @@ void Mesh_registration::run_discrete_opt(newresampler::Mesh& source) {
         else
         {
 #ifdef HAS_HOCR
-            Reduction HOCR_mode;
-
-            if(_discreteOPT=="HOCR")
-                HOCR_mode = HOCR;
-            else if (_discreteOPT == "ELC")
-                HOCR_mode = ELC_HOCR;
-            else if (_discreteOPT == "ELC_approx")
-                HOCR_mode = ELC_APPROX;
-            else
-                throw MeshregException("discrete optimisation mode is not available");
-
-            newenergy = Fusion::optimize(model, HOCR_mode, _verbose, _numthreads);
+            newenergy = Fusion::optimize(model, _verbose, _numthreads);
 #endif
         }
 
