@@ -220,7 +220,7 @@ public:
 		{
 			block *next = first;
 			first = (block *) new char [sizeof(block) + (block_size-1)*sizeof(block_item)];
-			if (!first) { if (error_function) (*error_function)("Not enough memory!"); exit(1); }
+			if (!first) { char err[20] = "Not enough memory!"; if (error_function) (*error_function)(err); exit(1); }
 			first_free = & (first -> data[0] );
 			for (item=first_free; item<first_free+block_size-1; item++)
 				item -> next_free = item + 1;

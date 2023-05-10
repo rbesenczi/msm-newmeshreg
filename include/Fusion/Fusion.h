@@ -6,7 +6,7 @@
 #endif
 
 #include "DiscreteCostFunction.h"
-#include "FastPD/FastPD.h"
+#include "FastPD.h"
 
 #define NUM_SWEEPS 2
 
@@ -66,6 +66,8 @@ public:
         unaryenergies.clear();
         pairenergies.clear();
     }
+
+    void set_parameters(myparam&){}
 
 protected:
     std::map<int,std::vector<double>> unaryenergies; // maps of nodes  xlabels x vals

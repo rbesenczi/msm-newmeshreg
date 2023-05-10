@@ -8,10 +8,10 @@
 #include "DiscreteModel.h"
 
 #ifdef HAS_HOCR
-#include "Fusion/Fusion.h"
+#include "Fusion.h"
 #endif
 #ifdef HAS_FPD
-#include "FastPD/FastPD.h"
+#include "FastPD.h"
 #endif
 
 namespace newmeshreg {

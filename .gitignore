@@ -34,3 +34,9 @@
 # Project files and folders
 depend.mk
 .idea/
+
+# Include sources
+src/FastPD.h
+src/Fusion.h
+src/block.h
+src/graph.h
