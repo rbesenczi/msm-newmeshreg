@@ -14,8 +14,6 @@ namespace newmeshreg {
 class DiscreteCostFunction {
 
 public:
-    DiscreteCostFunction() = default;
-
     virtual ~DiscreteCostFunction(){
         delete[] unarycosts;
         delete[] paircosts;
@@ -41,9 +39,6 @@ public:
 
     virtual double evaluateTotalCostSum(const int *labeling, const int *pairs, const int *triplets); //Evaluates the total cost for the given labeling.
 
-    virtual void set_parameters(myparam&) = 0;
-    virtual void report() {}
-
 protected:
     virtual void initialize(int numNodes, int numLabels, int numPairs, int numTriplets);
 
@@ -65,57 +60,7 @@ protected:
     bool _verbosity = false;
 };
 
-class SRegDiscreteCostFunction: public DiscreteCostFunction {
-
-public:
-    //---INITIALISE---//
-    SRegDiscreteCostFunction() = default;
-
-    void set_parameters(myparam&) override;
-    void initialize(int numNodes, int numLabels, int numPairs, int numTriplets) override;
-
-    void initialize_regulariser() {
-        if (_aSOURCE.nvertices() > 0 && _rmode >= 3)
-            anattree = std::make_shared<newresampler::Octree>(_TARGEThi);
-    }
-
-    //---SET---//
-    // data input and reference mesh, plus low resolution control point grid
-    virtual void set_meshes(const newresampler::Mesh& target,const newresampler::Mesh& source, const newresampler::Mesh& GRID){
-        _TARGET = target; _SOURCE = source; _ORIG = source; _CPgrid = GRID; _oCPgrid = GRID;
-    }
-    void set_anatomical(const newresampler::Mesh& targetS, const newresampler::Mesh& targetA, const newresampler::Mesh& sourceS, const newresampler::Mesh& sourceA) {
-        _TARGEThi = targetS; _aTARGET = targetA; _aICO = sourceS, _aSOURCE = sourceA;
-    }
-    void set_anatomical_neighbourhood(const std::vector<std::map<int,double>>& weights, const std::vector<std::vector<int>>& neighbourhood) {
-        _ANATbaryweights = weights; NEARESTFACES = neighbourhood;
-    }
-    void set_featurespace(const std::shared_ptr<featurespace>& features) {
-        FEAT = features;
-    }
-    void set_labels(const std::vector<newresampler::Point>& labellist, const std::vector<NEWMAT::Matrix>& ROT = std::vector<NEWMAT::Matrix>()) {
-        _labels = labellist;
-        ROTATIONS = std::make_shared<std::vector<NEWMAT::Matrix>>(ROT);
-    }
-    virtual void set_spacings(const NEWMAT::ColumnVector& spacings, double MAX) { MAXSEP = spacings; MVDmax = MAX; }
-    void set_dataaffintyweighting(const NEWMAT::Matrix& HRWeight) { _HIGHREScfweight = HRWeight; }
-    void set_octrees(std::shared_ptr<newresampler::Octree>& targett) { targettree = targett; }
-
-    virtual void reset_source(const newresampler::Mesh& source) { _SOURCE = source; }
-    virtual void reset_CPgrid(const newresampler::Mesh& grid) { _CPgrid = grid; }
-    void reset_anatomical();
-    void set_initial_angles(const std::vector<std::vector<double>>& angles);
-
-    void report() override { if(_debug) std::cout << " sumlikelihood " << sumlikelihood << " sumregcost " << sumregcost <<std::endl; }
-    void debug() { _debug = true; } // for debuging
-
-    newresampler::Mesh project_anatomical();
-    bool within_controlpt_range(int CPindex, int sourceindex);
-
-    virtual void resample_weights() {}
-    virtual void get_source_data() {}
-    virtual double triplet_likelihood(int, int, int, int, const newresampler::Point&, const newresampler::Point&, const newresampler::Point &) { return 0; }
-
+class NonLinearSRegDiscreteCostFunction: public DiscreteCostFunction {
 protected:
     //---MESHES---//
     newresampler::Mesh _TARGET; // TARGET MESH
@@ -132,6 +77,7 @@ protected:
     //---CF WEIGHTINGS---//
     NEWMAT::Matrix _HIGHREScfweight; // source mesh cfweight
     NEWMAT::ColumnVector MAXSEP;
+    NEWMAT::ColumnVector AbsoluteWeights;
 
     //---NEIGHBOURHOOD INFO---//
     std::shared_ptr<newresampler::Octree> targettree;
@@ -165,61 +111,95 @@ protected:
     float _k_exp = 2.0;
     double MAXstrain = 0.0;
 
-    std::vector<std::vector<double>> _sourcedata;
-    std::vector<std::vector<double>> _targetdata;
-    std::vector<std::vector<double>> _weights;
-    std::vector<std::map<int,double>> _ANATbaryweights;
-};
-
-class NonLinearSRegDiscreteCostFunction: public SRegDiscreteCostFunction {
-protected:
     //---REGULARISER OPTIONS---//
     bool _dweight = false;
     bool _anorm = false;
 
-    NEWMAT::ColumnVector AbsoluteWeights;
+    std::vector<std::vector<double>> _sourcedata;
+    std::vector<std::vector<double>> _targetdata;
+    std::vector<std::vector<double>> _weights;
+    std::vector<std::map<int,double>> _ANATbaryweights;
 
 public:
-    NonLinearSRegDiscreteCostFunction() = default;
-
+    //---INIT---//
     void initialize(int numNodes, int numLabels, int numPairs, int numTriplets) override;
-    void set_parameters(myparam&) override;
+    void set_parameters(myparam&);
 
+    //---COST CALCULATION---//
     void computeUnaryCosts() override;
-
     double computePairwiseCost(int pair, int labelA, int labelB) override;
     void computePairwiseCosts(const int *pairs) override;
-
     double computeTripletCost(int triplet, int labelA, int labelB, int labelC) override;
-    double triplet_likelihood(int, int, int, int, const newresampler::Point&, const newresampler::Point&, const newresampler::Point&) override { return 0; }
 
-    newresampler::Triangle deform_anatomy(int, int, std::map<int,newresampler::Point>&, std::map<int,bool>&, std::map<int,newresampler::Point>&);
-    void resample_weights() override;
 
+    void resample_weights();
+    void set_dataaffintyweighting(const NEWMAT::Matrix& HRWeight) { _HIGHREScfweight = HRWeight; }
+
+    //---GET DATA---//
+    virtual void get_source_data() = 0;
     virtual void get_target_data(int, const NEWMAT::Matrix&) = 0;
+    virtual double triplet_likelihood(int, int, int, int, const newresampler::Point&, const newresampler::Point&, const newresampler::Point &) = 0;
+
+    //---FOR AMSM---//
+    newresampler::Triangle deform_anatomy(int, int, std::map<int,newresampler::Point>&, std::map<int,bool>&, std::map<int,newresampler::Point>&);
+    void reset_anatomical();
+    newresampler::Mesh project_anatomical();
+    void initialize_regulariser() {
+        if (_aSOURCE.nvertices() > 0 && _rmode >= 3)
+            anattree = std::make_shared<newresampler::Octree>(_TARGEThi);
+    }
+    void set_anatomical(const newresampler::Mesh& targetS, const newresampler::Mesh& targetA, const newresampler::Mesh& sourceS, const newresampler::Mesh& sourceA) {
+        _TARGEThi = targetS; _aTARGET = targetA; _aICO = sourceS, _aSOURCE = sourceA;
+    }
+    void set_anatomical_neighbourhood(const std::vector<std::map<int,double>>& weights, const std::vector<std::vector<int>>& neighbourhood) {
+        _ANATbaryweights = weights; NEARESTFACES = neighbourhood;
+    }
+
+    //---SET FUNCTION SPACE---//
+    virtual void set_meshes(const newresampler::Mesh& target,const newresampler::Mesh& source, const newresampler::Mesh& GRID){
+        _TARGET = target; _SOURCE = source; _ORIG = source; _CPgrid = GRID; _oCPgrid = GRID;
+    }
+    void set_featurespace(const std::shared_ptr<featurespace>& features) {
+        FEAT = features;
+    }
+    void set_labels(const std::vector<newresampler::Point>& labellist, const std::vector<NEWMAT::Matrix>& ROT = std::vector<NEWMAT::Matrix>()) {
+        _labels = labellist;
+        ROTATIONS = std::make_shared<std::vector<NEWMAT::Matrix>>(ROT);
+    }
+    virtual void set_spacings(const NEWMAT::ColumnVector& spacings, double MAX) { MAXSEP = spacings; MVDmax = MAX; }
+    void set_octrees(std::shared_ptr<newresampler::Octree>& targett) { targettree = targett; }
+    virtual void reset_source(const newresampler::Mesh& source) { _SOURCE = source; }
+    virtual void reset_CPgrid(const newresampler::Mesh& grid) { _CPgrid = grid; }
+    void set_initial_angles(const std::vector<std::vector<double>>& angles);
+
+    //---REPORT AND DEBUG---//
+    void report() { if(_debug) std::cout << " sumlikelihood " << sumlikelihood << " sumregcost " << sumregcost <<std::endl; }
+    void debug() { _debug = true; } // for debuging
+
+    //---UTILITY---//
+    bool within_controlpt_range(int CPindex, int sourceindex);
 };
 
 class UnivariateNonLinearSRegDiscreteCostFunction: public NonLinearSRegDiscreteCostFunction {
 public:
-    UnivariateNonLinearSRegDiscreteCostFunction() = default;
     void initialize(int numNodes, int numLabels, int numPairs, int numTriplets) override;
     void get_source_data() override;
     void get_target_data(int node, const NEWMAT::Matrix& PtROTATOR) override;
     double computeUnaryCost(int node, int label) override;
+    double triplet_likelihood(int, int, int, int, const newresampler::Point&, const newresampler::Point&, const newresampler::Point&) override { return 0; }
 };
 
 class MultivariateNonLinearSRegDiscreteCostFunction: public NonLinearSRegDiscreteCostFunction {
 public:
-    MultivariateNonLinearSRegDiscreteCostFunction() = default;
     void initialize(int numNodes, int numLabels, int numPairs, int numTriplets) override;
     void get_source_data() override;
     void get_target_data(int node, const NEWMAT::Matrix& PtROTATOR) override;
     double computeUnaryCost(int node, int label) override;
+    double triplet_likelihood(int, int, int, int, const newresampler::Point&, const newresampler::Point&, const newresampler::Point&) override { return 0; }
 };
 
 class HOUnivariateNonLinearSRegDiscreteCostFunction: public UnivariateNonLinearSRegDiscreteCostFunction {
 public:
-    HOUnivariateNonLinearSRegDiscreteCostFunction() = default;
     void initialize(int numNodes, int numLabels, int numPairs, int numTriplets) override;
     void get_source_data() override;
     void get_target_data(int triplet, const newresampler::Point& new_CP0, const newresampler::Point& new_CP1, const newresampler::Point& new_CP2);
@@ -229,7 +209,6 @@ public:
 
 class HOMultivariateNonLinearSRegDiscreteCostFunction: public MultivariateNonLinearSRegDiscreteCostFunction {
 public:
-    HOMultivariateNonLinearSRegDiscreteCostFunction() = default;
     void initialize(int numNodes, int numLabels, int numPairs, int numTriplets) override;
     void get_source_data() override;
     void get_target_data(int triplet, const newresampler::Point& new_CP0, const newresampler::Point& new_CP1, const newresampler::Point& new_CP2);

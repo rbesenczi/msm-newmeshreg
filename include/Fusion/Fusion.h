@@ -62,8 +62,6 @@ public:
         pairenergies.clear();
     }
 
-    void set_parameters(myparam&) override {}
-
 protected:
     std::map<int,std::vector<double>> unaryenergies; // maps of nodes  xlabels x vals
     std::map<int,std::vector<double>> pairenergies;

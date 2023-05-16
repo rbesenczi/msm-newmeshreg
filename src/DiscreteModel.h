@@ -37,13 +37,8 @@ public:
     virtual inline double evaluateTotalCostSum() { return 0; }
 
     //---MODIFY---//
-    virtual void applyLabeling() {}
     virtual void applyLabeling(int *discreteLabeling) {}
     virtual void report() {}
-
-    //---INITIALIZE---//
-    virtual void Initialize(const newresampler::Mesh&) {}
-    virtual void setupCostFunction() {}
 
 protected:
     void resetLabeling() { if(labeling) std::fill(labeling,labeling + m_num_nodes,0.0); }
@@ -69,21 +64,24 @@ protected:
     int _nthreads = 1;
 };
 
-class SRegDiscreteModel : public DiscreteModel {
+class NonLinearSRegDiscreteModel : public DiscreteModel {
 
 public:
-    explicit SRegDiscreteModel(myparam& PAR) {
+    explicit NonLinearSRegDiscreteModel(myparam& PAR) {
         set_parameters(PAR);
         initialize_cost_function(m_multivariate, PAR);
     }
 
-    void Initialize(const newresampler::Mesh&) override;
+    //---INIT---//
+    void Initialize(const newresampler::Mesh&);
     void initialize_cost_function(bool MV, myparam &P);
     void set_parameters(myparam& PAR);
     void Initialize_sampling_grid();
     void label_sampling_grid(int, double, newresampler::Mesh&);
     std::vector<newresampler::Point> rescale_sampling_grid();
+    void setupCostFunction();
 
+    //---COMPUTE COSTS---//
     void inline computeUnaryCosts() override { costfct->computeUnaryCosts(); }
     double inline computeUnaryCost(int node, int label) override { return costfct->computeUnaryCost(node, label); }
     void inline computePairwiseCosts() override { costfct->computePairwiseCosts(pairs); }
@@ -117,12 +115,16 @@ public:
         unfold(m_CPgrid);
     }
 
+    //---DEBUG AND REPORT---//
     inline void set_debug(){ m_debug = true; costfct->debug(); } // for debuging
     inline void report() override { if (costfct) costfct->report(); }
 
+    //---GET---//
     inline newresampler::Mesh get_TARGET() { return m_TARGET; }
     inline newresampler::Mesh get_CPgrid() { return m_CPgrid; }
     inline std::shared_ptr<DiscreteCostFunction> getCostFunction() override { return costfct; }
+
+    void applyLabeling();
 
 protected:
     newresampler::Mesh m_TARGET; // TARGET MESH
@@ -150,17 +152,9 @@ protected:
     std::vector<newresampler::Point> m_barycentres; // samples based on barycentres of sampling grid
     std::vector<newresampler::Point> m_labels; // labels iterates between samples and barycnetres and is the label set used within cosfct
     std::vector<NEWMAT::Matrix> m_ROT; // rotates sampling grid to each control point
-    std::shared_ptr<SRegDiscreteCostFunction> costfct;  // costfunction object
-};
+    std::shared_ptr<NonLinearSRegDiscreteCostFunction> costfct;  // costfunction object
 
-class NonLinearSRegDiscreteModel: public SRegDiscreteModel {
-public:
-    explicit NonLinearSRegDiscreteModel(myparam& P) : SRegDiscreteModel(P) {}
-    void Initialize(const newresampler::Mesh&) override;
-    void setupCostFunction() override;
-    void applyLabeling() override;
-
-private:
+    //---INIT---//
     void estimate_pairs();
     void estimate_triplets();
     void get_rotations(std::vector<NEWMAT::Matrix>&);

@@ -53,7 +53,7 @@ public:
 private:
     int level = 0;
     bool isrigid = false;
-    std::shared_ptr<SRegDiscreteModel> model;
+    std::shared_ptr<NonLinearSRegDiscreteModel> model;
     std::shared_ptr<Rigid_cost_function> rigidcf;
 
     //---DATA AND MESHES---//

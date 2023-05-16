@@ -1,5 +1,7 @@
 #include "mesh_registration.h"
 
+#include <memory>
+
 namespace newmeshreg {
 
 Mesh_registration::Mesh_registration(){
@@ -59,7 +61,7 @@ void Mesh_registration::initialize_level(int current_lvl) {
 
         PARAMETERS.insert(parameterPair("multivariate",FEAT->get_dim() > 1));
 
-        model = std::shared_ptr<SRegDiscreteModel>(new NonLinearSRegDiscreteModel(PARAMETERS));
+        model = std::make_shared<NonLinearSRegDiscreteModel>(PARAMETERS);
 
         if(_debug) model->set_debug();
         model->set_featurespace(FEAT);

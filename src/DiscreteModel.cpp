@@ -2,8 +2,7 @@
 
 namespace newmeshreg {
 
-//-------------------SRegDiscreteModel-------------------//
-void SRegDiscreteModel::set_parameters(myparam& PAR) {
+void NonLinearSRegDiscreteModel::set_parameters(myparam& PAR) {
     myparam::iterator it;
     it=PAR.find("SGres"); m_SGres = boost::get<int>(it->second);
     it=PAR.find("regularisermode"); m_regoption = boost::get<int>(it->second);
@@ -16,23 +15,23 @@ void SRegDiscreteModel::set_parameters(myparam& PAR) {
     if(m_regoption == 1) _pairwise = true;
 }
 
-void SRegDiscreteModel::initialize_cost_function(bool MV, myparam& P) {
+void NonLinearSRegDiscreteModel::initialize_cost_function(bool MV, myparam& P) {
 
     if (MV)
         if(m_triclique)
-            costfct = std::shared_ptr<SRegDiscreteCostFunction>(new HOMultivariateNonLinearSRegDiscreteCostFunction());
+            costfct = std::shared_ptr<NonLinearSRegDiscreteCostFunction>(new HOMultivariateNonLinearSRegDiscreteCostFunction());
         else
-            costfct = std::shared_ptr<SRegDiscreteCostFunction>(new MultivariateNonLinearSRegDiscreteCostFunction());
+            costfct = std::shared_ptr<NonLinearSRegDiscreteCostFunction>(new MultivariateNonLinearSRegDiscreteCostFunction());
     else
         if (m_triclique)
-            costfct = std::shared_ptr<SRegDiscreteCostFunction>(new HOUnivariateNonLinearSRegDiscreteCostFunction());
+            costfct = std::shared_ptr<NonLinearSRegDiscreteCostFunction>(new HOUnivariateNonLinearSRegDiscreteCostFunction());
         else
-            costfct = std::shared_ptr<SRegDiscreteCostFunction>(new UnivariateNonLinearSRegDiscreteCostFunction());
+            costfct = std::shared_ptr<NonLinearSRegDiscreteCostFunction>(new UnivariateNonLinearSRegDiscreteCostFunction());
 
     costfct->set_parameters(P);
 }
 
-void SRegDiscreteModel::Initialize(const newresampler::Mesh& CONTROLGRID) {
+void NonLinearSRegDiscreteModel::Initialize(const newresampler::Mesh& CONTROLGRID) {
 
     double MVDmax = 0.0;
     MVD = 0.0;
@@ -72,9 +71,22 @@ void SRegDiscreteModel::Initialize(const newresampler::Mesh& CONTROLGRID) {
     costfct->set_spacings(vMAXmvd, MVDmax);
 
     m_iter = 1;
+
+    m_scale = 1;
+    if (_pairwise)
+        estimate_pairs();
+    else
+        estimate_triplets();
+
+    //---INITIALIAZE LABEL GRID---//
+    Initialize_sampling_grid();
+    get_rotations(m_ROT);  // enables rotation of sampling grid onto every CP
+
+    //---INITIALIZE NEIGHBOURHOODS---//
+    m_inputtree = std::make_shared<newresampler::Octree>(m_TARGET);
 }
 
-void SRegDiscreteModel::Initialize_sampling_grid() {
+void NonLinearSRegDiscreteModel::Initialize_sampling_grid() {
     //---LABELS USING HIGHER RES GRID---//
     m_samplinggrid = newresampler::make_mesh_from_icosa(m_SGres);
     true_rescale(m_samplinggrid,RAD);
@@ -88,7 +100,7 @@ void SRegDiscreteModel::Initialize_sampling_grid() {
     label_sampling_grid(m_centroid,m_maxs_dist,m_samplinggrid);
 }
 
-void SRegDiscreteModel::label_sampling_grid(int centroid, double dist, newresampler::Mesh& Grid) {
+void NonLinearSRegDiscreteModel::label_sampling_grid(int centroid, double dist, newresampler::Mesh& Grid) {
 
     m_samples.clear();
     m_barycentres.clear();
@@ -151,7 +163,7 @@ void SRegDiscreteModel::label_sampling_grid(int centroid, double dist, newresamp
     }
 }
 
-std::vector<newresampler::Point> SRegDiscreteModel::rescale_sampling_grid() {
+std::vector<newresampler::Point> NonLinearSRegDiscreteModel::rescale_sampling_grid() {
 
     std::vector<newresampler::Point> newlabels(m_samples.size());
 
@@ -174,24 +186,6 @@ std::vector<newresampler::Point> SRegDiscreteModel::rescale_sampling_grid() {
     }
     m_scale *= 0.8;
     return newlabels;
-}
-
-//-------------------NonLinearSRegDiscreteModel-------------------//
-void NonLinearSRegDiscreteModel::Initialize(const newresampler::Mesh& CONTROLGRID) {
-
-    SRegDiscreteModel::Initialize(CONTROLGRID);
-    m_scale = 1;
-    if (_pairwise)
-        estimate_pairs();
-    else
-        estimate_triplets();
-
-    //---INITIALIAZE LABEL GRID---//
-    Initialize_sampling_grid();
-    get_rotations(m_ROT);  // enables rotation of sampling grid onto every CP
-
-    //---INITIALIZE NEIGHBOURHOODS---//
-    m_inputtree = std::make_shared<newresampler::Octree>(m_TARGET);
 }
 
 void NonLinearSRegDiscreteModel::setupCostFunction() {

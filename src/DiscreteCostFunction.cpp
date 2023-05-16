@@ -2,7 +2,6 @@
 
 namespace newmeshreg {
 
-//================================BASE CLASS===========================================================================//
 void DiscreteCostFunction::initialize(int numNodes, int numLabels, int numPairs, int numTriplets) {
 
     if (m_num_nodes != numNodes || m_num_labels != numLabels)
@@ -68,37 +67,13 @@ double DiscreteCostFunction::evaluateTotalCostSum(const int *labeling, const int
     return cost_sum_unary + cost_sum_pairwise + cost_sum_triplet;
 }
 
-//================================SURFACE CLASS===========================================================================//
-void SRegDiscreteCostFunction::initialize(int numNodes,  int numLabels, int numPairs, int numTriplets)
-{
-    if (_TARGET.nvertices() == 0 || _SOURCE.nvertices() == 0)
-        throw MeshregException("CostFunction::You must supply source and target meshes.");
-    if(_HIGHREScfweight.Ncols() != _SOURCE.nvertices())
-        _HIGHREScfweight.ReSize(1, _SOURCE.nvertices());
-    if (_HIGHREScfweight.Nrows() != 1 && _HIGHREScfweight.Nrows() != FEAT->get_dim())
-        throw MeshregException("DiscreteModel ERROR:: costfunction weighting has dimensions incompatible with data");
-
-    DiscreteCostFunction::initialize(numNodes, numLabels, numPairs, numTriplets);
-}
-
-void SRegDiscreteCostFunction::set_parameters(myparam& ALLPARAMS){
-    myparam::iterator it;
-    it=ALLPARAMS.find("lambda"); _reglambda=boost::get<float>(it->second);
-    it=ALLPARAMS.find("range"); _controlptrange=boost::get<float>(it->second);
-    it=ALLPARAMS.find("simmeasure"); _simmeasure=boost::get<int>(it->second); sim.set_simval(_simmeasure);
-    it=ALLPARAMS.find("verbosity"); _verbosity=boost::get<bool>(it->second);
-    it=ALLPARAMS.find("regularisermode"); _rmode=boost::get<int>(it->second);
-    it=ALLPARAMS.find("numthreads"); _threads=boost::get<int>(it->second);
-}
-
-newresampler::Mesh SRegDiscreteCostFunction::project_anatomical() {
-
+newresampler::Mesh NonLinearSRegDiscreteCostFunction::project_anatomical() {
     newresampler::Mesh _aICOtrans = _aICO;
     barycentric_mesh_interpolation(_aICOtrans,_ORIG,_SOURCE, _threads);
     return newresampler::project_mesh(_aICOtrans,_TARGEThi,_aTARGET, _threads);
 }
 
-void SRegDiscreteCostFunction::reset_anatomical() {
+void NonLinearSRegDiscreteCostFunction::reset_anatomical() {
 
     if(_aSOURCE.nvertices() > 0)
     {
@@ -115,7 +90,7 @@ void SRegDiscreteCostFunction::reset_anatomical() {
     }
 }
 
-void SRegDiscreteCostFunction::set_initial_angles(const std::vector<std::vector<double>>& angles) {
+void NonLinearSRegDiscreteCostFunction::set_initial_angles(const std::vector<std::vector<double>>& angles) {
     double meanang = 0.0;
     for (const auto& angle : angles)
         for (double j : angle)
@@ -124,22 +99,24 @@ void SRegDiscreteCostFunction::set_initial_angles(const std::vector<std::vector<
     _MEANANGLE = meanang / (3.0*angles.size());
 }
 
-bool SRegDiscreteCostFunction::within_controlpt_range(int CPindex, int sourceindex) {
+bool NonLinearSRegDiscreteCostFunction::within_controlpt_range(int CPindex, int sourceindex) {
 
-    newresampler::Point CP = _CPgrid.get_coord(CPindex);
-    newresampler::Point SP = _SOURCE.get_coord(sourceindex);
-    double dist = 2 * RAD * asin((CP-SP).norm()/(2*RAD));
-    return (dist < _controlptrange * MAXSEP(CPindex + 1));
+    //double dist = 2 * RAD *
+    //        asin((_CPgrid.get_coord(CPindex)-_SOURCE.get_coord(sourceindex)).norm() / (2*RAD));
+    //return (dist < _controlptrange * MAXSEP(CPindex + 1));
+    return ((2 * RAD *
+             asin((_CPgrid.get_coord(CPindex)-_SOURCE.get_coord(sourceindex)).norm() / (2*RAD)))
+             < _controlptrange * MAXSEP(CPindex + 1));
 }
 
-//================================Non Linear SURFACE CLASS===========================================================================//
-/*
-NonLinearSRegDiscreteCostFunction::NonLinearSRegDiscreteCostFunction() {
-    _k_exp = 2.0; _rexp = 2; _rmode = 1; _mu = 0.4; _kappa = 1.6;
-}
-*/
 void NonLinearSRegDiscreteCostFunction::initialize(int numNodes, int numLabels, int numPairs, int numTriplets) {
-    SRegDiscreteCostFunction::initialize(numNodes, numLabels, numPairs, numTriplets);
+    if (_TARGET.nvertices() == 0 || _SOURCE.nvertices() == 0)
+        throw MeshregException("CostFunction::You must supply source and target meshes.");
+    if(_HIGHREScfweight.Ncols() != _SOURCE.nvertices())
+        _HIGHREScfweight.ReSize(1, _SOURCE.nvertices());
+    if (_HIGHREScfweight.Nrows() != 1 && _HIGHREScfweight.Nrows() != FEAT->get_dim())
+        throw MeshregException("DiscreteModel ERROR:: costfunction weighting has dimensions incompatible with data");
+    DiscreteCostFunction::initialize(numNodes, numLabels, numPairs, numTriplets);
 }
 
 void NonLinearSRegDiscreteCostFunction::set_parameters(myparam& ALLPARAMS) {
@@ -150,10 +127,15 @@ void NonLinearSRegDiscreteCostFunction::set_parameters(myparam& ALLPARAMS) {
     it=ALLPARAMS.find("shearmodulus");_mu=boost::get<float>(it->second);
     it=ALLPARAMS.find("bulkmodulus");_kappa=boost::get<float>(it->second);
     it=ALLPARAMS.find("kexponent");_k_exp=boost::get<float>(it->second);
-    SRegDiscreteCostFunction::set_parameters(ALLPARAMS);
+    it=ALLPARAMS.find("lambda"); _reglambda=boost::get<float>(it->second);
+    it=ALLPARAMS.find("range"); _controlptrange=boost::get<float>(it->second);
+    it=ALLPARAMS.find("simmeasure"); _simmeasure=boost::get<int>(it->second); sim.set_simval(_simmeasure);
+    it=ALLPARAMS.find("verbosity"); _verbosity=boost::get<bool>(it->second);
+    it=ALLPARAMS.find("regularisermode"); _rmode=boost::get<int>(it->second);
+    it=ALLPARAMS.find("numthreads"); _threads=boost::get<int>(it->second);
 }
 
-double NonLinearSRegDiscreteCostFunction::computeTripletCost(int triplet, int labelA, int labelB, int labelC){
+double NonLinearSRegDiscreteCostFunction::computeTripletCost(int triplet, int labelA, int labelB, int labelC) {
 
     double cost = 0.0, weight = 1.0;
     if(triplet == 0 && _debug) { sumlikelihood = 0.0; sumregcost = 0.0; }
@@ -271,7 +253,7 @@ double NonLinearSRegDiscreteCostFunction::computeTripletCost(int triplet, int la
     return likelihood + weight * _reglambda * MISCMATHS::pow(cost,_rexp); // normalise to try and ensure equivalent lambda for each resolution level
 }
 
-double NonLinearSRegDiscreteCostFunction::computePairwiseCost(int pair, int labelA, int labelB){
+double NonLinearSRegDiscreteCostFunction::computePairwiseCost(int pair, int labelA, int labelB) {
 
     NEWMAT::Matrix R1 = estimate_rotation_matrix(_CPgrid.get_coord(_pairs[2*pair]),(*ROTATIONS)[_pairs[2*pair]]*_labels[labelA]);
     NEWMAT::Matrix R2 = estimate_rotation_matrix(_CPgrid.get_coord(_pairs[2*pair+1]),(*ROTATIONS)[_pairs[2*pair+1]]*_labels[labelB]);
@@ -321,7 +303,7 @@ void NonLinearSRegDiscreteCostFunction::computePairwiseCosts(const int *pairs) {
                 paircosts[i * m_num_labels * m_num_labels + k * m_num_labels + j] = computePairwiseCost(i, j, k);
 }
 
-void NonLinearSRegDiscreteCostFunction::computeUnaryCosts(){
+void NonLinearSRegDiscreteCostFunction::computeUnaryCosts() {
     // for each control point resample data into blocks each influencing a single control point
     // calculates similarity
     for (int j = 0; j < m_num_labels; j++)
@@ -379,8 +361,8 @@ newresampler::Triangle NonLinearSRegDiscreteCostFunction::deform_anatomy(int tri
 }
 
 void NonLinearSRegDiscreteCostFunction::resample_weights(){
-// TAKE DATA TERM WEIGHTING AS MAXIMUM OF WEIGHTS ACROSS ALL DIMENSIONS
 
+    // TAKE DATA TERM WEIGHTING AS MAXIMUM OF WEIGHTS ACROSS ALL DIMENSIONS
     AbsoluteWeights.ReSize(_SOURCE.nvertices());
     AbsoluteWeights = 0;
 
@@ -399,7 +381,6 @@ void NonLinearSRegDiscreteCostFunction::resample_weights(){
     AbsoluteWeights = newresampler::metric_resample(tmp, _CPgrid, _threads).get_pvalues();
 }
 
-//================================ UNIVARIATE Non Linear SURFACE CLASS===========================================================================//
 void UnivariateNonLinearSRegDiscreteCostFunction::initialize(int numNodes, int numLabels, int numPairs, int numTriplets) {
 
     NonLinearSRegDiscreteCostFunction::initialize(numNodes, numLabels, numPairs, numTriplets);
@@ -465,9 +446,7 @@ double UnivariateNonLinearSRegDiscreteCostFunction::computeUnaryCost(int node, i
         return -cost;
 }
 
-//================================Multivariate Non Linear SURFACE CLASS===========================================================================//
-void MultivariateNonLinearSRegDiscreteCostFunction::initialize(int numNodes, int numLabels, int numPairs, int numTriplets)
-{
+void MultivariateNonLinearSRegDiscreteCostFunction::initialize(int numNodes, int numLabels, int numPairs, int numTriplets) {
     NonLinearSRegDiscreteCostFunction::initialize(numNodes, numLabels, numPairs, numTriplets);
     _sourcedata.clear(); _sourcedata.resize(_SOURCE.nvertices());
     _sourceinrange.clear(); _sourceinrange.resize(_CPgrid.nvertices());
@@ -526,7 +505,7 @@ void MultivariateNonLinearSRegDiscreteCostFunction::get_target_data(int node, co
     }
 }
 
-double MultivariateNonLinearSRegDiscreteCostFunction::computeUnaryCost(int node, int label){
+double MultivariateNonLinearSRegDiscreteCostFunction::computeUnaryCost(int node, int label) {
 
     double cost	= 0.0;
 
@@ -545,7 +524,6 @@ double MultivariateNonLinearSRegDiscreteCostFunction::computeUnaryCost(int node,
         return -AbsoluteWeights(node + 1) * cost;
 }
 
-//======================Triangle-based cost calculation Non Linear SURFACE CLASSES======================//
 void HOUnivariateNonLinearSRegDiscreteCostFunction::initialize(int numNodes, int numLabels, int numPairs, int numTriplets) {
         NonLinearSRegDiscreteCostFunction::initialize(numNodes, numLabels, numPairs, numTriplets);
         _sourcedata.clear(); _sourcedata.resize(_CPgrid.ntriangles());
