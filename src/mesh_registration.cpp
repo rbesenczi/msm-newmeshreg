@@ -448,7 +448,6 @@ void Mesh_registration::set_anatomical(const std::string &M1, const std::string 
 void Mesh_registration::set_transformed(const std::string &M) {
     transformed_mesh.load(M);
     true_rescale(MESHES[1], RAD);
-    //_initialise = true;
 }
 
 void Mesh_registration::set_input_cfweighting(const std::string& E) {
@@ -477,7 +476,7 @@ void Mesh_registration::parse_reg_options(const std::string &parameters)
                                      false,Utilities::requires_argument);
     std::vector<int> intdefault;
     Utilities::Option<std::vector<int>> simval(std::string("--simval"), intdefault,
-                                    std::string("code for determining which similarty measure is used to assess cost during registration: options are 2) pearsons correlation; 3) MNI only"),
+                                    std::string("code for determining which similarty measure is used to assess cost during registration. Warning! Changes in newMSM: affine method uses SSD by default, Discrete uses Pearson's correlation only. NMI is removed from newMSM, as it was not working in the old version."),
                                false, Utilities::requires_argument);
     Utilities::Option<std::vector<int>> iterations(std::string("--it"), intdefault,
                                         std::string("number of iterations at each resolution (default -–it=3,3,3)"),
@@ -513,7 +512,7 @@ void Mesh_registration::parse_reg_options(const std::string &parameters)
                                   std::string("Choose option for regulariser form lambda*weight*pow(cost,rexp). Where cost can be PAIRWISE or TRI-CLIQUE based. Options are: 1) PAIRWISE - penalising diffences in rotations of neighbouring points (default); 2) TRI_CLIQUE Angle deviation penalty (for spheres); 3) TRI_CLIQUE: Strain-based (for spheres);  4) TRI_CLIQUE Angle deviation penalty (for anatomy); 5) TRI_CLIQUE: Strain-based (for anatomy)"),
                                   false, Utilities::requires_argument);
     Utilities::Option<std::string> doptimizer(std::string("--dopt"),"FastPD",
-                                   std::string("discrete optimisation implementation. Choice of: FastPD (default), HOCR (will reduce to QBPO for pairwise), ELC, ELC_approx"),
+                                   std::string("discrete optimisation implementation. Choice of: FastPD (default) or HOCR (will reduce to QBPO for pairwise). Warning! ELC and ELC_approx removed from newMSM."),
                               false,Utilities::requires_argument,false);
     Utilities::Option<bool> tricliquelikeihood(std::string("--triclique"), false,
                                     std::string("estimate similarity for triangular patches (rather than circular)"),
@@ -568,8 +567,24 @@ void Mesh_registration::parse_reg_options(const std::string &parameters)
                                std::string("Determines the finite distance spacing for the affine gradient calculation (default 0.5)"),
                                false,Utilities::requires_argument);
     Utilities::Option<int> threads(std::string("--numthreads"), 1,
-                        std::string("number of threads for OpenMP (default 1)"),
+                        std::string("number of threads for OpenMP (default is single thread)"),
                         false,Utilities::requires_argument);
+    //Removed parameters
+    Utilities::Option<std::vector<int>> alpha_knn(std::string("--aKNN"),intdefault,
+                                    std::string("Warning! This parameter is removed from newMSM."),
+                                    false, Utilities::requires_argument);
+    Utilities::Option<std::string> meshinterpolationmethod(std::string("--mInt"), "BARY",
+                                            std::string("Warning! This parameter is removed from newMSM. (BARY only for surface resampling)"),
+                                            false,Utilities::requires_argument);
+    Utilities::Option<std::string> datainterpolationmethod(std::string("--dInt"), "ADAP_BARY",
+                                            std::string("Warning! This parameter is removed from newMSM. (ADAP_BARY only for data resampling)"),
+                                            false,Utilities::requires_argument);
+    Utilities::Option<bool> logtransform(std::string("--log"), false,
+                              std::string("Warning! This parameter is removed from newMSM. (Not used in code)"),
+                               false, Utilities::no_argument);
+    Utilities::Option<bool> scaleintensity(std::string("--scale"), false,
+                                std::string("Warning! This parameter is removed from newMSM. (Not used in code)"),
+                                 false, Utilities::no_argument);
     try {
         // must include all wanted options here (the order determines how
         // the help message is printed)
@@ -606,6 +621,12 @@ void Mesh_registration::parse_reg_options(const std::string &parameters)
         options.add(affinestepsize);
         options.add(gradsampling);
         options.add(threads);
+        //removed parameters
+        options.add(alpha_knn);
+        options.add(meshinterpolationmethod);
+        options.add(datainterpolationmethod);
+        options.add(logtransform);
+        options.add(scaleintensity);
 
         if(parameters=="usage")
         {
@@ -634,6 +655,18 @@ void Mesh_registration::parse_reg_options(const std::string &parameters)
         exit(2);
     }
 
+    //Removed parameters warning messages.
+    if(alpha_knn.set())
+        std::cout << "Warning! --aKNN parameter is removed from newMSM." << std::endl;
+    if(meshinterpolationmethod.set())
+        std::cout << "Warning! --mInt parameter is removed from newMSM. (BARY only for surface resampling)" << std::endl;
+    if(datainterpolationmethod.set())
+        std::cout << "Warning! --dInt parameter is removed from newMSM. (ADAP_BARY only for surface resampling)" << std::endl;
+    if(logtransform.set())
+        std::cout << "Warning! --log parameter is removed from newMSM." << std::endl;
+    if(scaleintensity.set())
+        std::cout << "Warning! --scale parameter is removed from newMSM." << std::endl;
+
     if(parameters.empty())
     {
         // if no config is supplied use sulc config (as of Sept 2014) as default
@@ -657,6 +690,17 @@ void Mesh_registration::parse_reg_options(const std::string &parameters)
         // now check for assignments and else set defaults
         if (simval.set()) _simval = simval.value();
         else _simval.resize(cost.size(), 2);
+        for(int i = 0; i < _simval.size(); ++i) {
+            if (_simval[i] == 3)
+                std::cout << "Warning! NMI similarity metric has been removed from newMSM (was not working in old MSM)."
+                          << std::endl;
+            if (_simval[i] == 1 && cost[i] == "DISCRETE")
+                std::cout << "Warning! SSD similarity metric is not supported for discrete method in newMSM (Pearson's correlation only)."
+                          << std::endl;
+            if (_simval[i] == 2 && (cost[i] == "AFFINE" || cost[i] == "RIGID"))
+                std::cout << "Warning! Pearson's correlation similarity metric is not supported for affine/rigid method in newMSM (SSD only)."
+                          << std::endl;
+        }
         if (iterations.set()) _iters = iterations.value();
         else _iters.resize(cost.size(), 3);
         if (sigma_in.set()) _sigma_in = sigma_in.value();
