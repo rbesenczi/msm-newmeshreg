@@ -48,21 +48,21 @@ void NonLinearSRegDiscreteModel::Initialize(const newresampler::Mesh& CONTROLGRI
     vMAXmvd.ReSize(m_CPgrid.nvertices());
     vMAXmvd = 0;
 
+    #pragma omp parallel for num_threads(_nthreads)
     for (int k = 0; k < m_CPgrid.nvertices(); k++)
     {
         newresampler::Point CP = m_CPgrid.get_coord(k);
         for (auto it = m_CPgrid.nbegin(k); it != m_CPgrid.nend(k); it++)
         {
             double dist = 2 * RAD * asin((CP-m_CPgrid.get_coord(*it)).norm() / (2 * RAD));
-            MVD += (CP-m_CPgrid.get_coord(*it)).norm();
-            tot++;
             if(dist > vMAXmvd(k+1)) vMAXmvd(k+1) = dist;
-            if(vMAXmvd(k+1) > MVDmax) MVDmax = vMAXmvd(k+1);
         }
     }
-    MVD /= tot;
 
-    m_maxs_dist = 0.5 * m_CPgrid.calculate_MaxVD();
+    MVD = m_CPgrid.calculate_MeanVD();
+    MVDmax = m_CPgrid.calculate_MaxVD();
+
+    m_maxs_dist = 0.5 * MVDmax;
 
     //---INITIALIZE COSTFCT---//
     costfct->set_meshes(m_TARGET, m_SOURCE, m_CPgrid);
@@ -80,6 +80,7 @@ void NonLinearSRegDiscreteModel::Initialize(const newresampler::Mesh& CONTROLGRI
 
     //---INITIALIAZE LABEL GRID---//
     Initialize_sampling_grid();
+
     get_rotations(m_ROT);  // enables rotation of sampling grid onto every CP
 
     //---INITIALIZE NEIGHBOURHOODS---//
@@ -105,7 +106,7 @@ void NonLinearSRegDiscreteModel::label_sampling_grid(int centroid, double dist, 
     m_samples.clear();
     m_barycentres.clear();
     std::vector<int> getneighbours, newneighbours;
-    int label = 1;
+    //int label = 1;
     NEWMAT::ColumnVector found(Grid.nvertices()), found_tr(Grid.ntriangles());
     found = 0; found_tr = 0;
 
@@ -148,11 +149,11 @@ void NonLinearSRegDiscreteModel::label_sampling_grid(int centroid, double dist, 
                                      ((bary - centre).norm() * (m_barycentre - centre).norm()))) < 1e-2)
                             found_tr(*j + 1) = 1;
 
-                    if(!found_tr(*j+1))
+                    if(found_tr(*j+1) == 0)
                     {
                         m_barycentres.push_back(bary);
-                        Grid.set_pvalue(Grid.get_triangle(*j).get_vertex_no(0),label);
-                        label++;
+                        //Grid.set_pvalue(Grid.get_triangle(*j).get_vertex_no(0),label);
+                        //label++;
                     }
                     found_tr(*j+1) = 1;
                 }
@@ -171,7 +172,6 @@ std::vector<newresampler::Point> NonLinearSRegDiscreteModel::rescale_sampling_gr
 
     if(m_scale >= 0.25)
     {
-        #pragma omp parallel for num_threads(_nthreads)
         for (int i = 0; i < m_samples.size(); i++)
         {
             newresampler::Point newsample = centre + (centre - m_samples[i]) * m_scale;

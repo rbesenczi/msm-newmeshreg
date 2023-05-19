@@ -354,7 +354,8 @@ void Mesh_registration::run_discrete_opt(newresampler::Mesh& source) {
 
         if(_discreteOPT == "MCMC")
         {
-            //placeholder...
+            std::cout << "This is MCMC..." << std::endl;
+            exit(1);
         }
         else if(_discreteOPT == "FastPD")
         {
