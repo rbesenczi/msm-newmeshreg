@@ -17,6 +17,7 @@ public:
     virtual ~DiscreteCostFunction(){
         delete[] unarycosts;
         delete[] paircosts;
+        delete[] tripletcosts;
     }
 
     //---SET--//
@@ -27,7 +28,7 @@ public:
     //---GET--//
     double* getUnaryCosts() { return unarycosts; } //Returns the unary costs look-up table.
     double* getPairwiseCosts() { return paircosts; } //Returns the pairwise costs look-up table.
-
+    double* getTripletCosts() { return tripletcosts; }
     //---COMPUTE--//
     virtual void computeUnaryCosts() {}; //Computes the unary costs look-up table.
     virtual double computeUnaryCost(int node, int label) { return 0; } //Computes the unary potential for the given node
@@ -35,6 +36,7 @@ public:
     virtual void computePairwiseCosts(const int *pairs) {} //Computes the pairwise costs look-up table.
     virtual double computePairwiseCost(int pair, int labelA, int labelB) { return 0; } //Computes the pairwise potential for a the given pair and labels.
 
+    virtual void computeTripletCosts() {} //Computes the pairwise costs look-up table.
     virtual double computeTripletCost(int triplet, int labelA, int labelB, int labelC) { return 0; } //Computes the triplet potential for a the given triplet and labels.
 
     virtual double evaluateTotalCostSum(const int *labeling, const int *pairs, const int *triplets); //Evaluates the total cost for the given labeling.
@@ -49,6 +51,7 @@ protected:
 
     double* unarycosts = nullptr; // Unary potentials look-up table.
     double* paircosts = nullptr; // Pairwise potentials look-up table.
+    double* tripletcosts = nullptr;
 
     int* _pairs = nullptr;
     int* _triplets = nullptr;
@@ -129,6 +132,7 @@ public:
     void computeUnaryCosts() override;
     double computePairwiseCost(int pair, int labelA, int labelB) override;
     void computePairwiseCosts(const int *pairs) override;
+    void computeTripletCosts() override;
     double computeTripletCost(int triplet, int labelA, int labelB, int labelC) override;
 
 

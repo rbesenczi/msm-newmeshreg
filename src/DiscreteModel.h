@@ -33,6 +33,7 @@ public:
     virtual inline double computeUnaryCost(int node, int label) { return 0; }
     virtual inline void computePairwiseCosts() {}
     virtual inline double computePairwiseCost(int pair, int labelA, int labelB) { return 0; }
+    virtual inline void computeTripletCosts() {}
     virtual inline double computeTripletCost(int triplet, int labelA, int labelB, int labelC) { return 0; }
     virtual inline double evaluateTotalCostSum() { return 0; }
 
@@ -86,6 +87,7 @@ public:
     double inline computeUnaryCost(int node, int label) override { return costfct->computeUnaryCost(node, label); }
     void inline computePairwiseCosts() override { costfct->computePairwiseCosts(pairs); }
     double inline computePairwiseCost(int pair, int labelA, int labelB) override { return costfct->computePairwiseCost(pair, labelA, labelB); }
+    void inline computeTripletCosts() override { costfct->computeTripletCosts(); }
     double inline computeTripletCost(int triplet, int labelA, int labelB, int labelC) override { return costfct->computeTripletCost(triplet, labelA, labelB, labelC); }
     double inline evaluateTotalCostSum() override { return costfct->evaluateTotalCostSum(labeling, pairs, triplets); }
 

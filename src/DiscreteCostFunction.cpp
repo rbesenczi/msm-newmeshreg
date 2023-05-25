@@ -16,6 +16,12 @@ void DiscreteCostFunction::initialize(int numNodes, int numLabels, int numPairs,
         paircosts = new double[numPairs * numLabels * numLabels];
     }
 
+    if (m_num_triplets != numTriplets || m_num_labels != numLabels)
+    {
+        delete[] tripletcosts;
+        tripletcosts = new double[numTriplets * numLabels * numLabels * numLabels];
+    }
+
     m_num_nodes = numNodes;
     m_num_labels = numLabels;
     m_num_pairs = numPairs;
@@ -23,11 +29,13 @@ void DiscreteCostFunction::initialize(int numNodes, int numLabels, int numPairs,
 
     std::fill(unarycosts,unarycosts+m_num_labels*m_num_nodes,0.0f);
     std::fill(paircosts,paircosts+m_num_labels*m_num_labels*m_num_pairs,0.0f);
+    std::fill(tripletcosts,tripletcosts+m_num_triplets*m_num_labels*m_num_labels*m_num_labels,0.0f);
 }
 
 void DiscreteCostFunction::reset() {
     if(unarycosts) std::fill(unarycosts,unarycosts+m_num_labels*m_num_nodes,0.0f);
     if(paircosts) std::fill(paircosts,paircosts+m_num_labels*m_num_labels*m_num_pairs,0.0f);
+    if(tripletcosts) std::fill(tripletcosts,tripletcosts+m_num_triplets*m_num_labels*m_num_labels*m_num_labels,0.0f);
 }
 
 double DiscreteCostFunction::evaluateTotalCostSum(const int *labeling, const int *pairs, const int *triplets) {
@@ -293,6 +301,19 @@ double NonLinearSRegDiscreteCostFunction::computePairwiseCost(int pair, int labe
     _CPgrid.set_coord(_pairs[2*pair+1],v1);
 
     return totalcost;
+}
+
+void NonLinearSRegDiscreteCostFunction::computeTripletCosts() {
+
+    std::cout << "m_num_triplets==" << m_num_triplets << " m_num_labels==" << m_num_labels << " total number of costs==" << m_num_triplets*m_num_labels*m_num_labels*m_num_labels << std::endl;
+
+    #pragma omp parallel for num_threads(_threads)
+    for(int i = 0; i < m_num_triplets; ++i)
+        for (unsigned int j = 0; j < _labels.size(); j++)
+            for (unsigned int k = 0; k < _labels.size(); k++)
+                for (unsigned int l = 0; l < _labels.size(); l++)
+                    tripletcosts[i*m_num_labels*m_num_labels*m_num_labels + j*m_num_labels*m_num_labels + k*m_num_labels + l] = computeTripletCost(i, j, k, l);
+
 }
 
 void NonLinearSRegDiscreteCostFunction::computePairwiseCosts(const int *pairs) {

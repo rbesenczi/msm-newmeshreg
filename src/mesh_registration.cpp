@@ -1,7 +1,5 @@
 #include "mesh_registration.h"
 
-#include <memory>
-
 namespace newmeshreg {
 
 Mesh_registration::Mesh_registration(){
@@ -343,19 +341,19 @@ void Mesh_registration::run_discrete_opt(newresampler::Mesh& source) {
             CombinedWeight = 1;
         }
 
-        // elementwise multiplication
         model->reset_meshspace(source); // source mesh is updated and control point grids are reset
         model->setupCostFunctionWeighting(CombinedWeight);
-
         model->setupCostFunction();
 
-        int* Labels = model->getLabeling();
         if(_verbose) std::cout << "Run optimisation." << std::endl;
 
         if(_discreteOPT == "MCMC")
         {
             std::cout << "This is MCMC..." << std::endl;
-            exit(1);
+            model->computeUnaryCosts();
+            model->computePairwiseCosts();
+            model->computeTripletCosts();
+            newenergy = MCMC::optimise(model, _verbose, _numthreads);
         }
         else if(_discreteOPT == "FastPD")
         {
@@ -364,7 +362,7 @@ void Mesh_registration::run_discrete_opt(newresampler::Mesh& source) {
             model->computePairwiseCosts();
             FPD::FastPD opt(model, 100);
             newenergy = opt.run();
-            opt.getLabeling(Labels);
+            opt.getLabeling(model->getLabeling());
 #endif
         }
         else

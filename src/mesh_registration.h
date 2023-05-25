@@ -6,6 +6,7 @@
 #include "rigid_costfunction.h"
 #include "newresampler/resampler.h"
 #include "DiscreteModel.h"
+#include "mcmc_opt.h"
 
 #ifdef HAS_HOCR
 #include "Fusion.h"
