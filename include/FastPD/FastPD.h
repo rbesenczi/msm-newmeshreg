@@ -32,8 +32,8 @@
 #include <vector>
 #include <memory>
 
-#include "DiscreteModel.h"
-#include "DiscreteCostFunction.h"
+#include "../src/DiscreteModel.h"
+#include "../src/DiscreteCostFunction.h"
 
 #include "graph.h"
 

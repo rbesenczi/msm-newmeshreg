@@ -9,10 +9,10 @@
 #include "mcmc_opt.h"
 
 #ifdef HAS_HOCR
-#include "Fusion.h"
+#include "Fusion/Fusion.h"
 #endif
 #ifdef HAS_FPD
-#include "FastPD.h"
+#include "FastPD/FastPD.h"
 #endif
 
 namespace newmeshreg {

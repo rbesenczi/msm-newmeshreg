@@ -5,6 +5,7 @@ SOFILES     = libfsl-newmeshreg.so
 LIBS        = -lfsl-newresampler -lfsl-newimage -lfsl-miscmaths -lfsl-utils
 USRCXXFLAGS = -fopenmp
 USRINCFLAGS += -DHAS_HOCR -DHAS_FPD
+USRINCFLAGS += -I../include/
 
 OBJS       = reg_tools.o featurespace.o similarities.o DiscreteCostFunction.o \
              DiscreteModel.o mesh_registration.o rigid_costfunction.o

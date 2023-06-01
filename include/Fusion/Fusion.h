@@ -2,8 +2,8 @@
 #define NEWMESHREG_FUSION_H
 
 #include "ELC/ELC.h"
-#include "DiscreteCostFunction.h"
-#include "FastPD.h"
+#include "../src/DiscreteCostFunction.h"
+#include "FastPD/FastPD.h"
 
 #define NUM_SWEEPS 2
 
