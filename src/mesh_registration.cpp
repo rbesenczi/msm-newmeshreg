@@ -824,6 +824,7 @@ void Mesh_registration::fix_parameters_for_level(int i) {
 
     PARAMETERS.clear();
 
+    PARAMETERS.insert(parameterPair("dOPT", _discreteOPT));
     PARAMETERS.insert(parameterPair("lambda", _lambda[i]));
     PARAMETERS.insert(parameterPair("lambda_pairs", _pairwiselambda));
     PARAMETERS.insert(parameterPair("set_lambda_pairs", _set_group_lambda));

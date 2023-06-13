@@ -4,6 +4,7 @@ namespace newmeshreg {
 
 void NonLinearSRegDiscreteModel::set_parameters(myparam& PAR) {
     myparam::iterator it;
+    it=PAR.find("dOPT"); optimiser = boost::get<std::string>(it->second);
     it=PAR.find("SGres"); m_SGres = boost::get<int>(it->second);
     it=PAR.find("regularisermode"); m_regoption = boost::get<int>(it->second);
     it=PAR.find("multivariate"); m_multivariate = boost::get<bool>(it->second);
@@ -73,11 +74,18 @@ void NonLinearSRegDiscreteModel::Initialize(const newresampler::Mesh& CONTROLGRI
     m_iter = 1;
 
     m_scale = 1;
-    if (_pairwise)
+    if(optimiser == "MCMC")
+    {
         estimate_pairs();
-    else
         estimate_triplets();
-
+    }
+    else
+    {
+        if (_pairwise)
+            estimate_pairs();
+        else
+            estimate_triplets();
+    }
     //---INITIALIAZE LABEL GRID---//
     Initialize_sampling_grid();
 
@@ -230,8 +238,16 @@ void NonLinearSRegDiscreteModel::setupCostFunction() {
     costfct->initialize(m_num_nodes,m_num_labels,m_num_pairs,m_num_triplets);
     costfct->get_source_data();
 
-    if(_pairwise) costfct->setPairs(pairs);
-    else costfct->setTriplets(triplets);
+    if(optimiser == "MCMC")
+    {
+        costfct->setPairs(pairs);
+        costfct->setTriplets(triplets);
+    }
+    else
+    {
+        if (_pairwise) costfct->setPairs(pairs);
+        else costfct->setTriplets(triplets);
+    }
     m_iter++;
 }
 
