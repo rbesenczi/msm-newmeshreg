@@ -263,8 +263,6 @@ double NonLinearSRegDiscreteCostFunction::computeTripletCostTri(int trID, int la
 
     double cost = 0.0, weight = 1.0;
 
-    std::map<int,newresampler::Point> vertex;
-
     newresampler::Triangle tr = _CPgrid.get_triangle(trID);
 
     newresampler::Point v0 = tr.get_vertex_coord(0);
@@ -282,7 +280,11 @@ double NonLinearSRegDiscreteCostFunction::computeTripletCostTri(int trID, int la
     newresampler::Triangle TRI(rv0,rv1, rv2, 0);
     newresampler::Triangle TRI_noDEF(v0,v1,v2,0);
 
-    //double likelihood = triplet_likelihood(triplet, id[0], id[1], id[2], vertex[id[0]], vertex[id[1]], vertex[id[2]]);
+    double likelihood = triplet_likelihood(tr.get_vertex_no(0),
+                                           tr.get_vertex_no(0),
+                                           tr.get_vertex_no(1),
+                                           tr.get_vertex_no(2),
+                                           rv0, rv1, rv2);
 
     // only estimate cost if it doesn't cause folding
     if ((TRI.normal() | TRI_noDEF.normal()) < 0)
@@ -292,10 +294,9 @@ double NonLinearSRegDiscreteCostFunction::computeTripletCostTri(int trID, int la
     } else
         cost = calculate_triangular_strain(TRI_ORIG, TRI, _mu, _kappa, std::shared_ptr<NEWMAT::ColumnVector>(), _k_exp);
 
-
     if (abs(cost) < 1e-8) cost = 0.0;
 
-    return /*likelihood +*/ weight * _reglambda * MISCMATHS::pow(cost,_rexp); // normalise to try and ensure equivalent lambda for each resolution level
+    return likelihood + weight * _reglambda * MISCMATHS::pow(cost,_rexp); // normalise to try and ensure equivalent lambda for each resolution level
 }
 
 double NonLinearSRegDiscreteCostFunction::computePairwiseCost(int pair, int labelA, int labelB) {
@@ -601,7 +602,7 @@ void HOUnivariateNonLinearSRegDiscreteCostFunction::get_target_data(int triplet,
                                                                     const newresampler::Point& new_CP1,
                                                                     const newresampler::Point& new_CP2) {
 
-    _targetdata.at(triplet).clear();
+    _targetdata[triplet].clear();
     _targetdata[triplet].resize(_sourceinrange[triplet].size());
 
     newresampler::Point CP0 = _CPgrid.get_coord(_triplets[3*triplet]);
@@ -625,7 +626,7 @@ void HOUnivariateNonLinearSRegDiscreteCostFunction::get_target_data(int triplet,
                             n1 = closest_triangle.get_vertex_no(1),
                             n2 = closest_triangle.get_vertex_no(2);
 
-        _targetdata.at(triplet).at(i) = newresampler::barycentric_weight(v0, v1, v2, tmp,
+        _targetdata[triplet][i] = newresampler::barycentric_weight(v0, v1, v2, tmp,
                                                                    FEAT->get_ref_val(1, n0 + 1),
                                                                    FEAT->get_ref_val(1, n1 + 1),
                                                                    FEAT->get_ref_val(1, n2 + 1));

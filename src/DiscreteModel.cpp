@@ -74,18 +74,12 @@ void NonLinearSRegDiscreteModel::Initialize(const newresampler::Mesh& CONTROLGRI
     m_iter = 1;
 
     m_scale = 1;
-    if(optimiser == "MCMC")
-    {
+
+    if (_pairwise)
         estimate_pairs();
-        estimate_triplets();
-    }
     else
-    {
-        if (_pairwise)
-            estimate_pairs();
-        else
-            estimate_triplets();
-    }
+        estimate_triplets();
+
     //---INITIALIAZE LABEL GRID---//
     Initialize_sampling_grid();
 
@@ -238,16 +232,9 @@ void NonLinearSRegDiscreteModel::setupCostFunction() {
     costfct->initialize(m_num_nodes,m_num_labels,m_num_pairs,m_num_triplets);
     costfct->get_source_data();
 
-    if(optimiser == "MCMC")
-    {
-        costfct->setPairs(pairs);
-        costfct->setTriplets(triplets);
-    }
-    else
-    {
-        if (_pairwise) costfct->setPairs(pairs);
-        else costfct->setTriplets(triplets);
-    }
+    if (_pairwise) costfct->setPairs(pairs);
+    else costfct->setTriplets(triplets);
+
     m_iter++;
 }
 
