@@ -280,7 +280,7 @@ double NonLinearSRegDiscreteCostFunction::computeTripletCostTri(int trID, int la
     newresampler::Triangle TRI(rv0,rv1, rv2, 0);
     newresampler::Triangle TRI_noDEF(v0,v1,v2,0);
 
-    double likelihood = triplet_likelihood(tr.get_vertex_no(0),
+    double likelihood = triplet_likelihood(trID,
                                            tr.get_vertex_no(0),
                                            tr.get_vertex_no(1),
                                            tr.get_vertex_no(2),
