@@ -124,6 +124,7 @@ private:
     float _shearmod = 0.4; // for strain regulariser
     float _bulkmod = 1.6;    // for strain regulariser
     float _cprange = 1.0;
+    int _mciters = 1000;
 
     //---AFFINE PARAMETERS---//
     float _affinestepsize = 0.0;

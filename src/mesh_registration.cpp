@@ -349,7 +349,7 @@ void Mesh_registration::run_discrete_opt(newresampler::Mesh& source) {
 
         if(_discreteOPT == "MCMC")
         {
-            newenergy = MCMC::optimise(model, _verbose, _numthreads);
+            newenergy = MCMC::optimise(model, _verbose, _numthreads, _mciters);
         }
         else if(_discreteOPT == "FastPD")
         {
@@ -561,6 +561,9 @@ void Mesh_registration::parse_reg_options(const std::string &parameters)
     Utilities::Option<float> gradsampling(std::string("--gradsampling"), 0.5,
                                std::string("Determines the finite distance spacing for the affine gradient calculation (default 0.5)"),
                                false,Utilities::requires_argument);
+    Utilities::Option<int> mciters(std::string("--mciters"), 1000,
+                                   std::string("number of iterations for Monte Carlo optimisation (default == 1000)"),
+                                   false,Utilities::requires_argument);
     Utilities::Option<int> threads(std::string("--numthreads"), 1,
                         std::string("number of threads for OpenMP (default is single thread)"),
                         false,Utilities::requires_argument);
@@ -615,6 +618,7 @@ void Mesh_registration::parse_reg_options(const std::string &parameters)
         options.add(quartet);
         options.add(affinestepsize);
         options.add(gradsampling);
+        options.add(mciters);
         options.add(threads);
         //removed parameters
         options.add(alpha_knn);
@@ -762,6 +766,7 @@ void Mesh_registration::parse_reg_options(const std::string &parameters)
     _affinestepsize=affinestepsize.value();
     _affinegradsampling=gradsampling.value();
     _numthreads=threads.value();
+    _mciters=mciters.value();
     _rescale_labels=rescale_labels.value();
 
     if(_verbose)
@@ -788,6 +793,7 @@ void Mesh_registration::parse_reg_options(const std::string &parameters)
         if(intensitynormalizewcut.set()) std::cout << "\nIntensity normalise with cut set.";
         if(rescale_labels.set()) std::cout << "\nRescale labels set.";
         std::cout << "\nDiscrete implementation: " << _discreteOPT;
+        if(_discreteOPT == "MCMC") std::cout << "\nMonte Carlo iterations: " << _mciters;
         std::cout << "\nRegulariser: " <<  _regmode;
         if(_regmode == 3 || _regmode == 5) std::cout << "\nShearmod: " << _shearmod << "; Bulkmod: " << _bulkmod << "; k_exponent: " << _k_exp;
         std::cout << "\nRegulariser exponent: " <<  _regexp;

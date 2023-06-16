@@ -7,11 +7,10 @@ namespace newmeshreg {
 
 class MCMC {
 public:
-    static double optimise(const std::shared_ptr<NonLinearSRegDiscreteModel>& energy, bool verbose, int numthreads) {
-
-        const int mc_iterations = 100;
+    static double optimise(const std::shared_ptr<NonLinearSRegDiscreteModel>& energy, bool verbose, int numthreads, int mciters) {
 
         int* labeling = energy->getLabeling();
+        const int* triplets = energy->getTriplets();
         const auto cp_grid = energy->get_CPgrid();
 
         std::random_device rd;
@@ -20,44 +19,76 @@ public:
 
         const int status_bar_width = 70;
 
-        for(int i = 0; i < mc_iterations; ++i)
+        for(int i = 0; i < mciters; ++i)
         {
-            for(int node = 0; node < energy->getNumNodes(); ++node)
+            for(int triplet = 0; triplet < energy->getNumTriplets(); ++triplet)
             {
-                double old_unary_cost = 0.0, new_unary_cost = 0.0,
-                       old_triplet_cost = 0.0, new_triplet_cost = 0.0;
+                std::vector<double> triplet_data(8);
 
                 int label = distribution(gen);
 
-                old_unary_cost = energy->computeUnaryCost(node, labeling[node]);
-                new_unary_cost = energy->computeUnaryCost(node, label);
+                const int nodeA = triplets[triplet*3];
+                const int nodeB = triplets[triplet*3+1];
+                const int nodeC = triplets[triplet*3+2];
 
-                for(int ntr = 0; ntr < cp_grid.get_total_triangles(node); ++ntr)
-                {
-                    const newresampler::Triangle& tr = cp_grid.get_triangle_from_vertex(node, ntr);
-                    old_triplet_cost += energy->computeTripletCostTri(tr.get_no(), labeling[tr.get_vertex_no(0)], labeling[tr.get_vertex_no(1)], labeling[tr.get_vertex_no(2)]);
-                    new_triplet_cost += energy->computeTripletCostTri(tr.get_no(), label, labeling[tr.get_vertex_no(1)], labeling[tr.get_vertex_no(2)]);
+                triplet_data[0] = energy->computeTripletCost(triplet,labeling[nodeA],labeling[nodeB],labeling[nodeC]);	//000
+                triplet_data[1] = energy->computeTripletCost(triplet,labeling[nodeA],labeling[nodeB],label);			//001
+                triplet_data[2] = energy->computeTripletCost(triplet,labeling[nodeA],label,labeling[nodeC]);			//010
+                triplet_data[3] = energy->computeTripletCost(triplet,labeling[nodeA],label,label);						//011
+                triplet_data[4] = energy->computeTripletCost(triplet,label,labeling[nodeB],labeling[nodeC]);			//100
+                triplet_data[5] = energy->computeTripletCost(triplet,label,labeling[nodeB],label);						//101
+                triplet_data[6] = energy->computeTripletCost(triplet,label,label,labeling[nodeC]);						//110
+                triplet_data[7] = energy->computeTripletCost(triplet,label,label,label);								//111
+
+                auto minimum = std::min_element(triplet_data.begin(), triplet_data.end());
+                int num = 0;
+                for(auto it = triplet_data.begin(); it != minimum; it++)
+                    num++;
+
+                if(num > 0) {
+                    switch (num) {
+                        case 1:
+                            labeling[nodeC] = label;
+                            break;
+                        case 2:
+                            labeling[nodeB] = label;
+                            break;
+                        case 3:
+                            labeling[nodeC] = labeling[nodeB] = label;
+                            break;
+                        case 4:
+                            labeling[nodeA] = label;
+                            break;
+                        case 5:
+                            labeling[nodeC] = labeling[nodeA] = label;
+                            break;
+                        case 6:
+                            labeling[nodeB] = labeling[nodeA] = label;
+                            break;
+                        case 7:
+                            labeling[nodeC] = labeling[nodeB] = labeling[nodeA] = label;
+                            break;
+                        default:
+                            std::cout << "some error" << std::endl;
+                    }
                 }
-
-                if (new_unary_cost + new_triplet_cost < old_unary_cost + old_triplet_cost)
-                    labeling[node] = label;
             }
-            //--
-            // The following few lines are for a status bar, don't bother with them...
-            std::cout << "Monte Carlo optimisation progress [";
-            double progress = (double)i/mc_iterations;
-            int pos = status_bar_width * progress;
-            for (int k = 0; k < status_bar_width; ++k)
-            {
-                if (k < pos) std::cout << "=";
-                else if (k == pos) std::cout << ">";
-                else std::cout << " ";
+            if(verbose) {
+                // The following few lines are for a status bar, don't bother with them...
+                std::cout << "Monte Carlo optimisation progress [";
+                double progress = (double) i / mciters;
+                int pos = status_bar_width * progress;
+                for (int k = 0; k < status_bar_width; ++k) {
+                    if (k < pos) std::cout << "=";
+                    else if (k == pos) std::cout << ">";
+                    else std::cout << " ";
+                }
+                std::cout << "] " << std::ceil(progress * 100.0) << " %\r";
+                std::cout.flush();
             }
-            std::cout << "] " << std::ceil(progress * 100.0) << " %\r";
-            std::cout.flush();
-            //--
         }
         std::cout << std::endl;
+
         return energy->evaluateTotalCostSum();
     }
 };
