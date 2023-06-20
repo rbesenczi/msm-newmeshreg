@@ -349,7 +349,7 @@ void Mesh_registration::run_discrete_opt(newresampler::Mesh& source) {
 
         if(_discreteOPT == "MCMC")
         {
-            newenergy = MCMC::optimise(model, _verbose, _numthreads, _mciters);
+            newenergy = MCMC::optimise(model, _verbose, _mciters);
         }
         else if(_discreteOPT == "FastPD")
         {
