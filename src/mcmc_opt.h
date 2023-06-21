@@ -59,7 +59,7 @@ public:
 
             if(verbose) {
                 // The following few lines are for a status bar, don't bother with them...
-                std::cout << "Monte Carlo optimisation progress [";
+                std::cout << "MC progress [";
                 double progress = (double) i / mciters;
                 int pos = status_bar_width * progress;
                 for (int k = 0; k < status_bar_width; ++k) {

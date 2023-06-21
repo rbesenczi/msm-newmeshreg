@@ -13,6 +13,7 @@ void NonLinearSRegDiscreteModel::set_parameters(myparam& PAR) {
     it=PAR.find("TriLikelihood"); m_triclique = boost::get<bool>(it->second);
     it=PAR.find("rescalelabels"); m_rescalelabels = boost::get<bool>(it->second);
     it=PAR.find("numthreads"); _nthreads = boost::get<int>(it->second);
+    it=PAR.find("labeldist"); _labeldist = boost::get<double>(it->second);
     if(m_regoption == 1) _pairwise = true;
 }
 
@@ -64,6 +65,7 @@ void NonLinearSRegDiscreteModel::Initialize(const newresampler::Mesh& CONTROLGRI
     MVDmax = m_CPgrid.calculate_MaxVD();
 
     m_maxs_dist = 0.5 * MVDmax;
+    m_maxs_dist = _labeldist * MVDmax;
 
     //---INITIALIZE COSTFCT---//
     costfct->set_meshes(m_TARGET, m_SOURCE, m_CPgrid);

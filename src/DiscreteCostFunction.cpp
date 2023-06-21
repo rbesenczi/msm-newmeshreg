@@ -138,6 +138,7 @@ void NonLinearSRegDiscreteCostFunction::set_parameters(myparam& ALLPARAMS) {
     it=ALLPARAMS.find("verbosity"); _verbosity=boost::get<bool>(it->second);
     it=ALLPARAMS.find("regularisermode"); _rmode=boost::get<int>(it->second);
     it=ALLPARAMS.find("numthreads"); _threads=boost::get<int>(it->second);
+    it=ALLPARAMS.find("dOPT"); dopt=boost::get<std::string>(it->second);
 }
 
 double NonLinearSRegDiscreteCostFunction::computeTripletCost(int triplet, int labelA, int labelB, int labelC) {
@@ -609,6 +610,7 @@ void HOUnivariateNonLinearSRegDiscreteCostFunction::get_target_data(int triplet,
     newresampler::Point CP1 = _CPgrid.get_coord(_triplets[3*triplet+1]);
     newresampler::Point CP2 = _CPgrid.get_coord(_triplets[3*triplet+2]);
 
+    #pragma omp parallel for num_threads(dopt != "MCMC" ? 1 : _threads)
     for(int i = 0; i < _sourceinrange[triplet].size(); ++i)
     {
         newresampler::Point SP = _SOURCE.get_coord(_sourceinrange[triplet][i]);
@@ -690,6 +692,7 @@ void HOMultivariateNonLinearSRegDiscreteCostFunction::get_target_data(int triple
     newresampler::Point CP1 = _CPgrid.get_coord(_triplets[3*triplet+1]);
     newresampler::Point CP2 = _CPgrid.get_coord(_triplets[3*triplet+2]);
 
+    #pragma omp parallel for num_threads(dopt != "MCMC" ? 1 : _threads)
     for(int i = 0; i < _sourceinrange[triplet].size(); ++i)
     {
         _targetdata[_sourceinrange[triplet][i]].clear();

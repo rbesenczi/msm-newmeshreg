@@ -144,6 +144,7 @@ protected:
     int m_regoption = 2; // sim measure i.e. correlation
     double m_maxs_dist = 0.0; // define maximum distance between the centre of the sampling grid and the furthest label
     double MVD = 0.0;
+    double _labeldist = 0.5;
     float m_scale = 0.0;
     bool m_multivariate = false;
     bool m_debug = false;

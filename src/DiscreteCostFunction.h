@@ -97,6 +97,8 @@ protected:
     std::vector<newresampler::Point> _labels;
     std::shared_ptr<std::vector<NEWMAT::Matrix>> ROTATIONS; // rotates label set onto each control point
 
+    std::string dopt;
+
     double MVDmax = 0.0; // max distance between CPs
     double _MEANANGLE = 0.0;
     float _controlptrange = 1.0;
