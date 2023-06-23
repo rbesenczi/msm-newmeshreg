@@ -2,6 +2,7 @@
 #define NEWMESHREG_MCMC_OPT_H
 
 #include "DiscreteModel.h"
+#include <algorithm>
 
 namespace newmeshreg {
 
@@ -15,10 +16,6 @@ public:
         std::random_device rd;
         std::mt19937 gen(rd());
         std::uniform_int_distribution<> distribution(0, energy->getNumLabels()-1);
-
-        const int status_bar_width = 70;
-
-        energy->evaluateTotalCostSum();
 
         for(int i = 0; i < mciters; ++i)
         {
@@ -37,13 +34,10 @@ public:
                 triplet_data[2] = energy->computeTripletCost(triplet,labeling[nodeA],label,labeling[nodeC]);			//010
                 triplet_data[3] = energy->computeTripletCost(triplet,label,labeling[nodeB],labeling[nodeC]);			//100
 
-                auto minimum = std::min_element(triplet_data.begin(), triplet_data.end());
-                int num = 0;
-                for(auto it = triplet_data.begin(); it != minimum; it++)
-                    num++;
+                int index = (int)std::ranges::distance(triplet_data.begin(), std::ranges::min_element(triplet_data));
 
-                if(num > 0) {
-                    switch (num) {
+                if(index != 0) {
+                    switch (index) {
                         case 1:
                             labeling[nodeC] = label;
                             break;
@@ -57,23 +51,14 @@ public:
                 }
             }
 
-            if(verbose) {
-                // The following few lines are for a status bar, don't bother with them...
-                std::cout << "MC progress [";
-                double progress = (double) i / mciters;
-                int pos = status_bar_width * progress;
-                for (int k = 0; k < status_bar_width; ++k) {
-                    if (k < pos) std::cout << "=";
-                    else if (k == pos) std::cout << ">";
-                    else std::cout << " ";
-                }
-                std::cout << "] " << std::ceil(progress * 100.0) << " %\r";
-                std::cout.flush();
+            if (verbose && i % 100 == 0)
+            {
+                std::cout << "MC iter " << i << '/' << mciters << '\t';
+                energy->evaluateTotalCostSum();
             }
-
         }
-        std::cout << std::endl;
 
+        std::cout << "MC iter " << mciters << '/' << mciters << '\t';
         return energy->evaluateTotalCostSum();
     }
 };

@@ -37,7 +37,6 @@ public:
     virtual double computePairwiseCost(int pair, int labelA, int labelB) { return 0; } //Computes the pairwise potential for a the given pair and labels.
 
     virtual double computeTripletCost(int triplet, int labelA, int labelB, int labelC) { return 0; } //Computes the triplet potential for a the given triplet and labels.
-    virtual double computeTripletCostTri(int trID, int labelA, int labelB, int labelC) { return 0; } //Computes the triplet potential for a the given triplet and labels.
 
     virtual double evaluateTotalCostSum(const int *labeling, const int *pairs, const int *triplets); //Evaluates the total cost for the given labeling.
 
@@ -56,7 +55,7 @@ protected:
     int* _pairs = nullptr;
     int* _triplets = nullptr;
 
-    float _reglambda = 0.0;  // scaling parameter for regulariser
+    float _reglambda = 1.0;  // scaling parameter for regulariser
 
     int _threads = 1;
     bool _debug = false;
@@ -125,6 +124,8 @@ protected:
     std::vector<std::vector<double>> _weights;
     std::vector<std::map<int,double>> _ANATbaryweights;
 
+    int mcmc_threads = 1;
+
 public:
     //---INIT---//
     void initialize(int numNodes, int numLabels, int numPairs, int numTriplets) override;
@@ -135,7 +136,6 @@ public:
     double computePairwiseCost(int pair, int labelA, int labelB) override;
     void computePairwiseCosts(const int *pairs) override;
     double computeTripletCost(int triplet, int labelA, int labelB, int labelC) override;
-    double computeTripletCostTri(int trID, int labelA, int labelB, int labelC) override;
 
     void resample_weights();
     void set_dataaffintyweighting(const NEWMAT::Matrix& HRWeight) { _HIGHREScfweight = HRWeight; }
@@ -180,6 +180,7 @@ public:
     //---REPORT AND DEBUG---//
     void report() { if(_debug) std::cout << " sumlikelihood " << sumlikelihood << " sumregcost " << sumregcost <<std::endl; }
     void debug() { _debug = true; } // for debuging
+    void set_mcmc_threads(int threads) { mcmc_threads = threads; }
 
     //---UTILITY---//
     bool within_controlpt_range(int CPindex, int sourceindex);

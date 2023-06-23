@@ -89,7 +89,6 @@ public:
     void inline computePairwiseCosts() override { costfct->computePairwiseCosts(pairs); }
     double inline computePairwiseCost(int pair, int labelA, int labelB) override { return costfct->computePairwiseCost(pair, labelA, labelB); }
     double inline computeTripletCost(int triplet, int labelA, int labelB, int labelC) override { return costfct->computeTripletCost(triplet, labelA, labelB, labelC); }
-    double inline computeTripletCostTri(int trID, int labelA, int labelB, int labelC) override { return costfct->computeTripletCostTri(trID, labelA, labelB, labelC); }
     double inline evaluateTotalCostSum() override { return costfct->evaluateTotalCostSum(labeling, pairs, triplets); }
 
     //---SETUP MODEL---//

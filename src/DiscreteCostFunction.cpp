@@ -259,47 +259,6 @@ double NonLinearSRegDiscreteCostFunction::computeTripletCost(int triplet, int la
     return likelihood + weight * _reglambda * MISCMATHS::pow(cost,_rexp); // normalise to try and ensure equivalent lambda for each resolution level
 }
 
-
-double NonLinearSRegDiscreteCostFunction::computeTripletCostTri(int trID, int labelA, int labelB, int labelC) {
-
-    double cost = 0.0, weight = 1.0;
-
-    newresampler::Triangle tr = _CPgrid.get_triangle(trID);
-
-    newresampler::Point v0 = tr.get_vertex_coord(0);
-    newresampler::Point v1 = tr.get_vertex_coord(1);
-    newresampler::Point v2 = tr.get_vertex_coord(2);
-
-    newresampler::Triangle TRI_ORIG(_ORIG.get_coord(tr.get_vertex_no(0)),
-                                    _ORIG.get_coord(tr.get_vertex_no(1)),
-                                    _ORIG.get_coord(tr.get_vertex_no(2)), 0);
-
-    newresampler::Point rv0 = (*ROTATIONS)[tr.get_vertex_no(0)] * _labels[labelA];
-    newresampler::Point rv1 = (*ROTATIONS)[tr.get_vertex_no(1)] * _labels[labelB];
-    newresampler::Point rv2 = (*ROTATIONS)[tr.get_vertex_no(2)] * _labels[labelC];
-
-    newresampler::Triangle TRI(rv0,rv1, rv2, 0);
-    newresampler::Triangle TRI_noDEF(v0,v1,v2,0);
-
-    double likelihood = triplet_likelihood(trID,
-                                           tr.get_vertex_no(0),
-                                           tr.get_vertex_no(1),
-                                           tr.get_vertex_no(2),
-                                           rv0, rv1, rv2);
-
-    // only estimate cost if it doesn't cause folding
-    if ((TRI.normal() | TRI_noDEF.normal()) < 0)
-    {
-        cost = 1.0;
-        weight += 1e6;
-    } else
-        cost = calculate_triangular_strain(TRI_ORIG, TRI, _mu, _kappa, std::shared_ptr<NEWMAT::ColumnVector>(), _k_exp);
-
-    if (abs(cost) < 1e-8) cost = 0.0;
-
-    return likelihood + weight * _reglambda * MISCMATHS::pow(cost,_rexp); // normalise to try and ensure equivalent lambda for each resolution level
-}
-
 double NonLinearSRegDiscreteCostFunction::computePairwiseCost(int pair, int labelA, int labelB) {
 
     NEWMAT::Matrix R1 = estimate_rotation_matrix(_CPgrid.get_coord(_pairs[2*pair]),(*ROTATIONS)[_pairs[2*pair]]*_labels[labelA]);
@@ -610,7 +569,7 @@ void HOUnivariateNonLinearSRegDiscreteCostFunction::get_target_data(int triplet,
     newresampler::Point CP1 = _CPgrid.get_coord(_triplets[3*triplet+1]);
     newresampler::Point CP2 = _CPgrid.get_coord(_triplets[3*triplet+2]);
 
-    #pragma omp parallel for num_threads(dopt != "MCMC" ? 1 : _threads)
+    #pragma omp parallel for num_threads(mcmc_threads)
     for(int i = 0; i < _sourceinrange[triplet].size(); ++i)
     {
         newresampler::Point SP = _SOURCE.get_coord(_sourceinrange[triplet][i]);
@@ -692,7 +651,7 @@ void HOMultivariateNonLinearSRegDiscreteCostFunction::get_target_data(int triple
     newresampler::Point CP1 = _CPgrid.get_coord(_triplets[3*triplet+1]);
     newresampler::Point CP2 = _CPgrid.get_coord(_triplets[3*triplet+2]);
 
-    #pragma omp parallel for num_threads(dopt != "MCMC" ? 1 : _threads)
+    #pragma omp parallel for num_threads(mcmc_threads)
     for(int i = 0; i < _sourceinrange[triplet].size(); ++i)
     {
         _targetdata[_sourceinrange[triplet][i]].clear();

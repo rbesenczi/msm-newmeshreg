@@ -359,14 +359,20 @@ void Mesh_registration::run_discrete_opt(newresampler::Mesh& source) {
             FPD::FastPD opt(model, 100);
             newenergy = opt.run();
             opt.getLabeling(model->getLabeling());
+#else
+            throw MeshregException("FastPD is not supported in this version of newMSM. Please use MCMC.");
 #endif
         }
-        else
+        else if(_discreteOPT == "HOCR")
         {
 #ifdef HAS_HOCR
             newenergy = Fusion::optimize(model, _verbose, _numthreads);
+#else
+            throw MeshregException("HOCR is not supported in this version of newMSM. Please use MCMC or FastPD.");
 #endif
         }
+        else
+            throw MeshregException("Unrecognized optimiser");
 
         if(iter > 1 && ((iter - 1) % 2 == 0) && (energy - newenergy < 0.001) && _discreteOPT != "MCMC")
         {
@@ -503,7 +509,6 @@ void Mesh_registration::parse_reg_options(const std::string &parameters)
     Utilities::Option< std::vector<float>> cutthreshold(std::string("--cutthr"),cutthresholddefault,
                                              std::string("Upper and lower thresholds for defining cut vertices (default --cutthr=0,0)"),
                                         false, Utilities::requires_argument);
-#ifdef HAS_HOCR
     Utilities::Option<int> regulariseroption(std::string("--regoption"), 1,
                                   std::string("Choose option for regulariser form lambda*weight*pow(cost,rexp). Where cost can be PAIRWISE or TRI-CLIQUE based. Options are: 1) PAIRWISE - penalising diffences in rotations of neighbouring points (default); 2) TRI_CLIQUE Angle deviation penalty (for spheres); 3) TRI_CLIQUE: Strain-based (for spheres);  4) TRI_CLIQUE Angle deviation penalty (for anatomy); 5) TRI_CLIQUE: Strain-based (for anatomy)"),
                                   false, Utilities::requires_argument);
@@ -525,7 +530,6 @@ void Mesh_registration::parse_reg_options(const std::string &parameters)
     Utilities::Option<float> kexponent(std::string("--k_exponent"), 2,
                             std::string("exponent inside strain equation (default 2)"),
                             false, Utilities::requires_argument);
-#endif
     Utilities::Option<float> regulariserexp(std::string("--regexp"), 2.0,
                                  std::string("Regulariser exponent 'rexp' (default 2.0)"),
                                  false,Utilities::requires_argument);
@@ -601,7 +605,6 @@ void Mesh_registration::parse_reg_options(const std::string &parameters)
         options.add(sampgrid);
         options.add(anatgrid);
         options.add(cutthreshold);
-#ifdef HAS_HOCR
         options.add(regulariseroption);
         options.add(doptimizer);
         options.add(tricliquelikeihood);
@@ -609,7 +612,6 @@ void Mesh_registration::parse_reg_options(const std::string &parameters)
         options.add(bulk);
         options.add(grouplambda);
         options.add(kexponent);
-#endif
         options.add(regulariserexp);
         options.add(distweight);
         options.add(anorm);
@@ -734,7 +736,6 @@ void Mesh_registration::parse_reg_options(const std::string &parameters)
     }
 
     _resolutionlevels = cost.size();
-#ifdef HAS_HOCR
     if(grouplambda.set())
     {
         _set_group_lambda=true;
@@ -746,10 +747,7 @@ void Mesh_registration::parse_reg_options(const std::string &parameters)
     _shearmod=shear.value();
     _bulkmod=bulk.value();
     _k_exp=kexponent.value();
-#else
-    _regmode=1;
-    _discreteOPT="FastPD";
-#endif
+    if(_discreteOPT=="FastPD") _regmode=1;
     if(intensitynormalizewcut.set())
     {
         _IN=intensitynormalizewcut.value();

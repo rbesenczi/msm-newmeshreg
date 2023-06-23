@@ -237,6 +237,8 @@ void NonLinearSRegDiscreteModel::setupCostFunction() {
     if (_pairwise) costfct->setPairs(pairs);
     else costfct->setTriplets(triplets);
 
+    if(optimiser == "MCMC") costfct->set_mcmc_threads(_nthreads);
+
     m_iter++;
 }
 
