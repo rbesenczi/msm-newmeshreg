@@ -44,25 +44,19 @@ double DiscreteCostFunction::evaluateTotalCostSum(const int *labeling, const int
     double cost_sum_pairwise = 0.0f;
     double cost_sum_triplet = 0.0f;
 
-    #pragma omp parallel for num_threads(_threads)
     for (int i = 0; i < m_num_nodes; ++i) {
         double unary_cost = computeUnaryCost(i, labeling[i]);
-        #pragma omp critical
         cost_sum_unary += unary_cost;
     }
 
-    #pragma omp parallel for num_threads(_threads)
     for (int p = 0; p < m_num_pairs; ++p) {
         double pair_cost = computePairwiseCost(p, labeling[pairs[p * 2]], labeling[pairs[p * 2 + 1]]);
-        #pragma omp critical
         cost_sum_pairwise += pair_cost;
     }
 
-    #pragma omp parallel for num_threads(_threads)
     for (int t = 0; t < m_num_triplets; ++t) {
         double triplet_cost = computeTripletCost(t, labeling[triplets[t * 3]], labeling[triplets[t * 3 + 1]],
                                                  labeling[triplets[t * 3 + 2]]);
-        #pragma omp critical
         cost_sum_triplet += triplet_cost;
     }
 
@@ -183,8 +177,8 @@ double NonLinearSRegDiscreteCostFunction::computeTripletCost(int triplet, int la
                                                 _ORIG.get_coord(_triplets[3*triplet+2]), 0);
                 std::vector<double> deformed_angles = TRI.get_angles();
                 std::vector<double> orig_angles = TRI_ORIG.get_angles();
-                double distortion = log2(TRI.get_area()/TRI_ORIG.get_area());
 
+                double distortion = log2(TRI.get_area()/TRI_ORIG.get_area());
                 if (_dweight && distortion != 1) tweight = exp(abs(distortion - 1));
                 else tweight = 1.0;
 
@@ -207,26 +201,26 @@ double NonLinearSRegDiscreteCostFunction::computeTripletCost(int triplet, int la
             }
             case 4:
             {
-                double diff = 0.0;
+                double tweight = 1.0, diff = 0.0;
                 std::map<int,bool> moved2;
                 std::map<int,newresampler::Point> transformed_points;
 
+                #pragma omp parallel for num_threads(mcmc_threads)
                 for (unsigned int n = 0; n < NEARESTFACES[triplet].size(); n++)
                 {
                     newresampler::Triangle TRIorig = _aSOURCE.get_triangle(NEARESTFACES[triplet][n]);
                     newresampler::Triangle TRItrans = deform_anatomy(triplet, n, vertex, moved2, transformed_points);
-                    std::vector<double> deformed_angles = TRItrans.get_angles();
                     std::vector<double> orig_angles = TRIorig.get_angles();
+                    std::vector<double> deformed_angles = TRItrans.get_angles();
+
                     double distortion = log2(TRItrans.get_area()/TRIorig.get_area());
-                    double tweight = 0.0;
-                    if (_dweight && distortion != 1)
-                        tweight = exp(abs(distortion - 1));
-                    else
-                        tweight = 1;
+                    if (_dweight && distortion != 1) tweight = exp(abs(distortion - 1));
+                    else tweight = 1;
+
                     for (int i = 0; i < 3; i++)
                         diff += std::pow(deformed_angles[i] - orig_angles[i], 2);
                     diff = tweight * sqrt(diff);
-                    cost += diff;
+                    cost += diff;   // TODO this is a bit odd, as diff is not zeroed at any point in this loop. Maybe double summing the cost?
                 }
                 cost = cost / (double) NEARESTFACES[triplet].size();
                 break;
@@ -235,6 +229,8 @@ double NonLinearSRegDiscreteCostFunction::computeTripletCost(int triplet, int la
             {
                 std::map<int,bool> moved2;
                 std::map<int,newresampler::Point> transformed_points;
+
+                #pragma omp parallel for num_threads(mcmc_threads)
                 for (unsigned int n = 0; n < NEARESTFACES[triplet].size(); n++)
                 {
                     newresampler::Triangle TRIorig = _aSOURCE.get_triangle(NEARESTFACES[triplet][n]);
@@ -313,6 +309,7 @@ void NonLinearSRegDiscreteCostFunction::computeUnaryCosts() {
     // for each control point resample data into blocks each influencing a single control point
     // calculates similarity
     for (int j = 0; j < m_num_labels; j++)
+        #pragma omp parallel for num_threads(_threads)
         for (int k = 0; k < _CPgrid.nvertices(); k++)
             unarycosts[j * m_num_nodes + k] = computeUnaryCost(k, j);
 }
@@ -320,28 +317,21 @@ void NonLinearSRegDiscreteCostFunction::computeUnaryCosts() {
 newresampler::Triangle NonLinearSRegDiscreteCostFunction::deform_anatomy(int trip, int n, std::map<int,newresampler::Point>& vertex,
                                                                          std::map<int,bool>& moved, std::map<int,newresampler::Point>& transformed) {
     newresampler::Triangle TRItrans;
-    newresampler::Point newPt;
-    int tindex;
-    std::map<int,double> weight;
 
     for(int i=0;i<3;i++)
     { // for each point in face
-        tindex = _aSOURCE.get_triangle(NEARESTFACES[trip][n]).get_vertex_no(i);
+        const int tindex = _aSOURCE.get_triangle(NEARESTFACES[trip][n]).get_vertex_no(i);
 
         if(moved.find(tindex) == moved.end())
         {
             moved[tindex] = true;
+            newresampler::Point newPt;
 
-            newPt.X = 0; newPt.Y = 0; newPt.Z = 0;
-            for (auto &it: _ANATbaryweights[tindex])
+            //newPt.X = 0; newPt.Y = 0; newPt.Z = 0;
+            for (const auto& it: _ANATbaryweights[tindex])
                 newPt += vertex[it.first] * it.second;
 
             newresampler::Triangle closest_triangle = anattree->get_closest_triangle(newPt);
-
-            if(closest_triangle.get_no() == -1) {
-                std::cout << newPt << std::endl;
-                throw MeshregException("closest triangle not found");
-            }
 
             newresampler::Point v0 = closest_triangle.get_vertex_coord(0),
                                 v1 = closest_triangle.get_vertex_coord(1),
@@ -350,13 +340,13 @@ newresampler::Triangle NonLinearSRegDiscreteCostFunction::deform_anatomy(int tri
                 n1 = closest_triangle.get_vertex_no(1),
                 n2 = closest_triangle.get_vertex_no(2);
 
-            weight = newresampler::calc_barycentric_weights(v0,v1,v2,newPt,n0,n1,n2);
+            std::map<int,double> weight = newresampler::calc_barycentric_weights(v0,v1,v2,newPt,n0,n1,n2);
 
             newPt.X = 0; newPt.Y = 0; newPt.Z = 0;
-            for (auto &it: weight)
+            for (const auto& it: weight)
                 newPt += _aTARGET.get_coord(it.first) * it.second;
 
-            transformed[tindex]=newPt;
+            transformed[tindex] = newPt;
             TRItrans.set_vertex(i, newPt);
         }
         else

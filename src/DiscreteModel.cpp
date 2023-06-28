@@ -64,7 +64,6 @@ void NonLinearSRegDiscreteModel::Initialize(const newresampler::Mesh& CONTROLGRI
     MVD = m_CPgrid.calculate_MeanVD();
     MVDmax = m_CPgrid.calculate_MaxVD();
 
-    m_maxs_dist = 0.5 * MVDmax;
     m_maxs_dist = _labeldist * MVDmax;
 
     //---INITIALIZE COSTFCT---//

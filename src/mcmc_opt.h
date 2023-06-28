@@ -11,6 +11,8 @@ public:
     static double optimise(const std::shared_ptr<NonLinearSRegDiscreteModel>& energy, bool verbose, int mciters) {
 
         int* labeling = energy->getLabeling();
+        const int num_nodes = energy->getNumNodes();
+        const double* unary_costs = energy->getCostFunction()->getUnaryCosts();
         const int* triplets = energy->getTriplets();
 
         std::random_device rd;
@@ -29,10 +31,14 @@ public:
                 const int nodeB = triplets[triplet*3+1];
                 const int nodeC = triplets[triplet*3+2];
 
-                triplet_data[0] = energy->computeTripletCost(triplet,labeling[nodeA],labeling[nodeB],labeling[nodeC]);	//000
-                triplet_data[1] = energy->computeTripletCost(triplet,labeling[nodeA],labeling[nodeB],label);			//001
-                triplet_data[2] = energy->computeTripletCost(triplet,labeling[nodeA],label,labeling[nodeC]);			//010
-                triplet_data[3] = energy->computeTripletCost(triplet,label,labeling[nodeB],labeling[nodeC]);			//100
+                triplet_data[0] = energy->computeTripletCost(triplet,labeling[nodeA],labeling[nodeB],labeling[nodeC]) +
+                                  unary_costs[labeling[nodeC] * num_nodes + nodeC] + unary_costs[labeling[nodeB] * num_nodes + nodeB] + unary_costs[labeling[nodeA] * num_nodes + nodeA];
+                triplet_data[1] = energy->computeTripletCost(triplet,labeling[nodeA],labeling[nodeB],label) +
+                                  unary_costs[label * num_nodes + nodeC] + unary_costs[labeling[nodeB] * num_nodes + nodeB] + unary_costs[labeling[nodeA] * num_nodes + nodeA];
+                triplet_data[2] = energy->computeTripletCost(triplet,labeling[nodeA],label,labeling[nodeC]) +
+                                  unary_costs[label * num_nodes + nodeB] + unary_costs[labeling[nodeC] * num_nodes + nodeC] + unary_costs[labeling[nodeA] * num_nodes + nodeA];
+                triplet_data[3] = energy->computeTripletCost(triplet,label,labeling[nodeB],labeling[nodeC]) +
+                                  unary_costs[label * num_nodes + nodeA] + unary_costs[labeling[nodeC] * num_nodes + nodeC] + unary_costs[labeling[nodeB] * num_nodes + nodeB];
 
                 int index = (int)std::ranges::distance(triplet_data.begin(), std::ranges::min_element(triplet_data));
 
@@ -58,7 +64,9 @@ public:
             }
         }
 
-        std::cout << "MC iter " << mciters << '/' << mciters << '\t';
+        if (verbose)
+            std::cout << "MC iter " << mciters << '/' << mciters << '\t';
+
         return energy->evaluateTotalCostSum();
     }
 };
