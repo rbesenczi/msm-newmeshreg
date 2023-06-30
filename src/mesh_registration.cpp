@@ -369,7 +369,11 @@ void Mesh_registration::run_discrete_opt(newresampler::Mesh& source) {
 #ifdef HAS_HOCR
             newenergy = Fusion::optimize(model, _verbose, _numthreads);
 #else
+#ifdef HAS_FPD
             throw MeshregException("HOCR is not supported in this version of newMSM. Please use MCMC or FastPD.");
+#else
+            throw MeshregException("HOCR and FastPD are not supported in this version of newMSM. Please use MCMC.");
+#endif
 #endif
         }
         else
