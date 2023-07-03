@@ -8,7 +8,7 @@ USRINCFLAGS += -DHAS_FPD -DHAS_HOCR
 USRINCFLAGS += -I../include/
 
 OBJS       = reg_tools.o featurespace.o similarities.o DiscreteCostFunction.o \
-             DiscreteModel.o mesh_registration.o rigid_costfunction.o
+             DiscreteModel.o mesh_registration.o rigid_costfunction.o group_mesh_registration.o
 
 all: ${SOFILES}
 
