@@ -279,18 +279,18 @@ void Mesh_registration::save_transformed_data(const std::string& filename) {
 }
 
 //---PROJECT TRANSFORMATION FROM PREVIOUS LEVEL TO UPSAMPLED SOURCE---//
-newresampler::Mesh Mesh_registration::project_CPgrid(newresampler::Mesh SPH_in, newresampler::Mesh REG) {
+newresampler::Mesh Mesh_registration::project_CPgrid(newresampler::Mesh SPH_in, newresampler::Mesh REG, int num) {
     // num indices which warp for group registration
 
     if(level == 1)
     {
         if(transformed_mesh.nvertices() > 0)
         { // project into alignment with transformed mesh
-            if (transformed_mesh == MESHES[0]) std::cout << " WARNING:: transformed mesh has the same coordinates as the input mesh " << std::endl;
+            if (transformed_mesh == MESHES[num]) std::cout << " WARNING:: transformed mesh has the same coordinates as the input mesh " << std::endl;
             else
             {
-                barycentric_mesh_interpolation(SPH_in, MESHES[0], transformed_mesh, _numthreads);
-                if (model) model->warp_CPgrid(MESHES[0], transformed_mesh);
+                barycentric_mesh_interpolation(SPH_in, MESHES[num], transformed_mesh, _numthreads);
+                if (model) model->warp_CPgrid(MESHES[num], transformed_mesh, num);
                 // for tri clique model control grid is continously deformed
             }
         }

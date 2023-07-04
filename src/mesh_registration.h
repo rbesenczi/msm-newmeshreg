@@ -147,7 +147,7 @@ protected:
     NEWMAT::Matrix combine_costfunction_weighting(const NEWMAT::Matrix &, const NEWMAT::Matrix &);
     newresampler::Mesh resample_anatomy(const newresampler::Mesh& control_grid, std::vector<std::map<int,double>>& baryweights, std::vector<std::vector<int>>& ANAT_to_CPgrid_neighbours, int current_lvl);
     NEWMAT::Matrix downsample_cfweighting(double sigma, const newresampler::Mesh& SPH, std::shared_ptr<newresampler::Mesh> CFWEIGHTING, std::shared_ptr<newresampler::Mesh> EXCL);
-    newresampler::Mesh project_CPgrid(newresampler::Mesh SPH_in, newresampler::Mesh REG);
+    newresampler::Mesh project_CPgrid(newresampler::Mesh SPH_in, newresampler::Mesh REG, int num = 0);
 
     //---RUN---//
     void evaluate();

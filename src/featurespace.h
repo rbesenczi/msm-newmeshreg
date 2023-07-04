@@ -13,6 +13,7 @@ class featurespace {
 
 public:
     featurespace(const std::string& datain, const std::string& dataref);
+    featurespace(const std::vector<std::string>& datalist);
 
     //---INITIALISE---//
     newresampler::Mesh initialize(int, std::vector<newresampler::Mesh>&, bool);

@@ -129,7 +129,8 @@ protected:
 public:
     //---INIT---//
     void initialize(int numNodes, int numLabels, int numPairs, int numTriplets) override;
-    void set_parameters(myparam&);
+
+    virtual void set_parameters(myparam&);
 
     //---COST CALCULATION---//
     void computeUnaryCosts() override;
@@ -141,9 +142,9 @@ public:
     void set_dataaffintyweighting(const NEWMAT::Matrix& HRWeight) { _HIGHREScfweight = HRWeight; }
 
     //---GET DATA---//
-    virtual void get_source_data() = 0;
-    virtual void get_target_data(int, const NEWMAT::Matrix&) = 0;
-    virtual double triplet_likelihood(int, int, int, int, const newresampler::Point&, const newresampler::Point&, const newresampler::Point &) = 0;
+    virtual void get_source_data() { }
+    virtual void get_target_data(int, const NEWMAT::Matrix&) { }
+    virtual double triplet_likelihood(int, int, int, int, const newresampler::Point&, const newresampler::Point&, const newresampler::Point &) { return 0; }
 
     //---FOR AMSM---//
     newresampler::Triangle deform_anatomy(int, int, std::map<int,newresampler::Point>&, std::map<int,bool>&, std::map<int,newresampler::Point>&);
@@ -173,7 +174,7 @@ public:
     }
     virtual void set_spacings(const NEWMAT::ColumnVector& spacings, double MAX) { MAXSEP = spacings; MVDmax = MAX; }
     void set_octrees(std::shared_ptr<newresampler::Octree>& targett) { targettree = targett; }
-    virtual void reset_source(const newresampler::Mesh& source) { _SOURCE = source; }
+    virtual void reset_source(const newresampler::Mesh& source, int num = 0) { _SOURCE = source; }
     virtual void reset_CPgrid(const newresampler::Mesh& grid) { _CPgrid = grid; }
     void set_initial_angles(const std::vector<std::vector<double>>& angles);
 

@@ -9,6 +9,12 @@ featurespace::featurespace(const std::string& datain, const std::string& dataref
     CMfile_in.push_back(dataref);
 }
 
+featurespace::featurespace(const std::vector<std::string>& datalist) {
+    _sigma_in.resize(datalist.size(), 5.0);
+    _fthreshold.resize(2,0.0);
+    CMfile_in = datalist;
+}
+
 void featurespace::set_smoothing_parameters(const std::vector<double>& s) {
 
     _sigma_in.clear();

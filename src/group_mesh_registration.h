@@ -2,6 +2,7 @@
 #define NEWMESHREG_GROUPMESHREG_H
 
 #include "mesh_registration.h"
+#include "DiscreteGroupModel.h"
 #include "newresampler/mesh.h"
 
 namespace newmeshreg {

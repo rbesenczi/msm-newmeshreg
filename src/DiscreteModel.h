@@ -69,19 +69,21 @@ protected:
 class NonLinearSRegDiscreteModel : public DiscreteModel {
 
 public:
+    NonLinearSRegDiscreteModel() = default;
     explicit NonLinearSRegDiscreteModel(myparam& PAR) {
         set_parameters(PAR);
         initialize_cost_function(m_multivariate, PAR);
     }
 
-    //---INIT---//
+    virtual //---INIT---//
     void Initialize(const newresampler::Mesh&);
     void initialize_cost_function(bool MV, myparam &P);
     void set_parameters(myparam& PAR);
     void Initialize_sampling_grid();
     void label_sampling_grid(int, double, newresampler::Mesh&);
     std::vector<newresampler::Point> rescale_sampling_grid();
-    void setupCostFunction();
+
+    virtual void setupCostFunction();
 
     //---COMPUTE COSTS---//
     void inline computeUnaryCosts() override { costfct->computeUnaryCosts(); }
@@ -91,8 +93,8 @@ public:
     double inline computeTripletCost(int triplet, int labelA, int labelB, int labelC) override { return costfct->computeTripletCost(triplet, labelA, labelB, labelC); }
     double inline evaluateTotalCostSum() override { return costfct->evaluateTotalCostSum(labeling, pairs, triplets); }
 
-    //---SETUP MODEL---//
-    inline void set_meshspace(const newresampler::Mesh& target, const newresampler::Mesh& source) { m_TARGET = target; m_SOURCE = source; }
+    virtual //---SETUP MODEL---//
+    inline void set_meshspace(const newresampler::Mesh& target, const newresampler::Mesh& source, int num = 1) { m_TARGET = target; m_SOURCE = source; }
     inline void set_anatomical_meshspace(const newresampler::Mesh& ref_sphere, const newresampler::Mesh& ref_anat,
                                   const newresampler::Mesh& source_sphere, const newresampler::Mesh & source_anat) {
         costfct->set_anatomical(ref_sphere, ref_anat, source_sphere, source_anat);
@@ -106,13 +108,16 @@ public:
     // costfunction weighting combines source and reference weightings at beginning of optimisation iteration -
     // will not be 100% accurate but will remove any sensitivity of the label choices to weighting
     inline void setupCostFunctionWeighting(const NEWMAT::Matrix& Weight) { costfct->set_dataaffintyweighting(Weight); }
-    // source needs to be reset after every iteration of discrete optimisation
-    inline void reset_meshspace(const newresampler::Mesh& source) {
+
+    virtual // source needs to be reset after every iteration of discrete optimisation
+    inline void reset_meshspace(const newresampler::Mesh& source, int num = 0) {
         m_SOURCE = source;
         costfct->reset_source(source);
     }
-    inline void reset_CPgrid(const newresampler::Mesh& grid) { m_CPgrid = grid; }
-    inline void warp_CPgrid(newresampler::Mesh& START, newresampler::Mesh& END) {
+
+    virtual inline void reset_CPgrid(const newresampler::Mesh& grid, int num = 0) { m_CPgrid = grid; }
+
+    virtual inline void warp_CPgrid(newresampler::Mesh& START, newresampler::Mesh& END, int num = 0) {
         barycentric_mesh_interpolation(m_CPgrid,START,END, _nthreads);
         unfold(m_CPgrid);
     }
@@ -123,11 +128,12 @@ public:
 
     //---GET---//
     inline newresampler::Mesh get_TARGET() { return m_TARGET; }
-    inline newresampler::Mesh get_CPgrid() { return m_CPgrid; }
+
+    virtual inline newresampler::Mesh get_CPgrid(int num = 0) { return m_CPgrid; }
     inline std::shared_ptr<DiscreteCostFunction> getCostFunction() override { return costfct; }
     inline bool is_triclique() const { return m_triclique; }
 
-    void applyLabeling();
+    virtual void applyLabeling();
 
 protected:
     newresampler::Mesh m_TARGET; // TARGET MESH
@@ -159,10 +165,12 @@ protected:
     std::vector<NEWMAT::Matrix> m_ROT; // rotates sampling grid to each control point
     std::shared_ptr<NonLinearSRegDiscreteCostFunction> costfct;  // costfunction object
 
-    //---INIT---//
+    virtual //---INIT---//
     void estimate_pairs();
-    void estimate_triplets();
-    void get_rotations(std::vector<NEWMAT::Matrix>&);
+
+    virtual void estimate_triplets();
+
+    virtual void get_rotations(std::vector<NEWMAT::Matrix>&);
 };
 
 } //namespace newmeshreg
