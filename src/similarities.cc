@@ -172,4 +172,38 @@ double sparsesimkernel::corr(const std::vector<double>& A, const std::vector<dou
     else return prod / (sqrt(varA) * sqrt(varB));
 }
 
+double sparsesimkernel::corr(const std::map<int,float> &A, const std::map<int,float> &B) {
+
+    double prod = 0.0, varA = 0.0, varB = 0.0, MAPA_MEAN = 0.0, MAPB_MEAN = 0.0;
+    int ind = 0;
+
+    // estimate mean
+    for (const auto &iter: A)
+        if (B.find(iter.first) != B.end()) {
+            MAPA_MEAN += iter.second;
+            MAPB_MEAN += B.find(iter.first)->second;
+            ind++;
+        }
+
+    if (ind == 0) return 1e6;
+    else {
+        MAPA_MEAN /= ind;
+        MAPB_MEAN /= ind;
+
+        for (const auto &iter: A) {
+            if (B.find(iter.first) != B.end()) {
+                prod += (iter.second - MAPA_MEAN) * (B.find(iter.first)->second - MAPB_MEAN);
+                varA += (iter.second - MAPA_MEAN) * (iter.second - MAPA_MEAN);
+                varB += (B.find(iter.first)->second - MAPB_MEAN) * (B.find(iter.first)->second - MAPB_MEAN);
+            }
+        }
+
+        prod /= ind;
+        varA /= ind;
+        varB /= ind;
+
+        if (varA == 0.0 || varB == 0.0) return 0.0;
+        else return (1 - (1 + (prod / (sqrt(varA) * sqrt(varB)))) * 0.5);
+    }
+}
 } //namespace newmeshreg

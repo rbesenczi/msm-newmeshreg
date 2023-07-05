@@ -11,7 +11,13 @@ public:
     DiscreteGroupCostFunction() = default;
 
     void set_parameters(myparam& p) override;
-    //void set_relations(const boost::shared_ptr<RELATIONS> &CONTROL,const boost::shared_ptr<RELATIONS> &TARG);
+
+    void set_relations(const boost::shared_ptr<RELATIONS>& CONTROL, const boost::shared_ptr<RELATIONS>& TARG){
+        _controlrel = CONTROL;
+        _targetrel = TARG;
+        _sourcerel = _controlrel->invert_relationsTR( _CONTROLMESHES[0],_DATAMESHES[0]);
+    }
+
     void get_spacings();
     void set_meshes(const newresampler::Mesh& target, const newresampler::Mesh& source, const newresampler::Mesh& GRID, int num = 1) {
         _TEMPLATE = target;
@@ -49,14 +55,14 @@ private:
     std::vector<newresampler::Mesh> _CONTROLMESHES; // TARGET MESH
     newresampler::Mesh _TEMPLATE;
 
-    //vector<boost::shared_ptr<RELATIONS> > _CONTROLRELATIONS; // hold control grid neighbours of each source vertex
-    //vector<boost::shared_ptr<RELATIONS> > _TEMPLATERELATIONS; // hold target grid neighbours of each source vertex
-    std::vector<std::vector<int> > TEMPLATEPTS;
+    std::vector<std::shared_ptr<RELATIONS>> _CONTROLRELATIONS; // hold control grid neighbours of each source vertex
+    std::vector<std::shared_ptr<RELATIONS>> _TEMPLATERELATIONS; // hold target grid neighbours of each source vertex
+    std::vector<std::vector<int>> TEMPLATEPTS;
     std::vector<NEWMAT::ColumnVector> SPACINGS;
 
-    //////////////////////DATA//////////////////
-    std::vector<NEWMAT::Matrix>  RESAMPLEDDATA;
-    std::vector<std::map<int,float> > PATCHDATA;
+    //---DATA---//
+    std::vector<NEWMAT::Matrix> RESAMPLEDDATA;
+    std::vector<std::map<int,float>> PATCHDATA;
 
     double MVD_LR = 0.0;
 

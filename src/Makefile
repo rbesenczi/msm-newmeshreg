@@ -4,12 +4,11 @@ PROJNAME    = NewMeshReg
 SOFILES     = libfsl-newmeshreg.so
 LIBS        = -lfsl-newresampler -lfsl-newimage -lfsl-miscmaths -lfsl-utils
 USRCXXFLAGS = -fopenmp -std=c++20
-USRINCFLAGS += -DHAS_FPD -DHAS_HOCR
-USRINCFLAGS += -I../include/
+USRINCFLAGS += -DHAS_FPD -DHAS_HOCR -I../include/
 
 OBJS       = reg_tools.o featurespace.o similarities.o DiscreteCostFunction.o \
              DiscreteModel.o mesh_registration.o rigid_costfunction.o \
-             group_mesh_registration.o DiscreteGroupModel.o DiscreteGroupCostFunction.o
+             #group_mesh_registration.o DiscreteGroupModel.o DiscreteGroupCostFunction.o
 
 all: ${SOFILES}
 

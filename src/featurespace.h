@@ -34,6 +34,8 @@ public:
     inline std::shared_ptr<newresampler::Mesh> get_reference_excl() const { return EXCL[1]; }
     inline std::shared_ptr<MISCMATHS::BFMatrix> get_input_data() const { return DATA[0]; }
     inline std::shared_ptr<MISCMATHS::BFMatrix> get_reference_data() const { return DATA[1]; }
+    inline NEWMAT::Matrix get_data_matrix(int i) const { return DATA[i]->AsMatrix(); }
+    inline double get_data_val(int i, int j, int n) const { return DATA[n]->Peek(i,j); }
 
 private:
     std::vector<std::shared_ptr<MISCMATHS::BFMatrix>> DATA; // holds generic BFMATRIX data which can be sparse or full matrices

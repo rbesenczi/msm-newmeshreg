@@ -21,6 +21,7 @@ public:
     void set_neighbourhood(std::shared_ptr<Neighbourhood>& n) { nbh = n; }
     void Resize(unsigned int m, unsigned int n) { mp = std::make_shared<MISCMATHS::SpMat<double>>(m,n); }
     void calculate_sim_column_nbh(int);
+    double corr(const std::map<int,float>& A, const std::map<int,float>& B);
 
     //---FOR DISCRETE---//
     inline double get_sim_for_min(const std::vector<double>& input, const std::vector<double>& reference, const std::vector<double>& weights) {

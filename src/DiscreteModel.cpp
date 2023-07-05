@@ -6,6 +6,7 @@ void NonLinearSRegDiscreteModel::set_parameters(myparam& PAR) {
     myparam::iterator it;
     it=PAR.find("dOPT"); optimiser = boost::get<std::string>(it->second);
     it=PAR.find("SGres"); m_SGres = boost::get<int>(it->second);
+    it=PAR.find("CPres"); m_CPres = boost::get<int>(it->second);
     it=PAR.find("regularisermode"); m_regoption = boost::get<int>(it->second);
     it=PAR.find("multivariate"); m_multivariate = boost::get<bool>(it->second);
     it=PAR.find("verbosity"); m_verbosity = boost::get<bool>(it->second);
@@ -14,6 +15,7 @@ void NonLinearSRegDiscreteModel::set_parameters(myparam& PAR) {
     it=PAR.find("rescalelabels"); m_rescalelabels = boost::get<bool>(it->second);
     it=PAR.find("numthreads"); _nthreads = boost::get<int>(it->second);
     it=PAR.find("labeldist"); _labeldist = boost::get<double>(it->second);
+    it=PAR.find("quartet"); _estquartet=boost::get<bool>(it->second);
     if(m_regoption == 1) _pairwise = true;
 }
 

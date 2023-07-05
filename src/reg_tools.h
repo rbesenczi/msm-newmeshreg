@@ -66,6 +66,8 @@ void multivariate_histogram_normalization(MISCMATHS::BFMatrix& IN, MISCMATHS::BF
 //---READ DATA---//
 void set_data(const std::string& dataname, std::shared_ptr<MISCMATHS::BFMatrix>& BF, newresampler::Mesh& M, bool issparse = false);
 
+template<typename Iterator> inline bool next_combination(const Iterator first, Iterator k, const Iterator last);
+
 } // namespace newmeshreg
 
 #endif //NEWMESHREG_REG_TOOLS_H

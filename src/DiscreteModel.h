@@ -21,10 +21,13 @@ public:
     int getNumLabels() const { return m_num_labels; }
     int getNumPairs() const { return m_num_pairs; }
     int getNumTriplets() const { return m_num_triplets; }
+    int getNumQuartets() const { return m_num_quartets; }
+
     int* getLabeling() { return labeling; }
     const int* getLabeling() const { return labeling; }
     const int* getPairs() const { return pairs; }
     const int* getTriplets() const { return triplets; }
+    const int* getQuartets() const { return quartets; }
 
     virtual inline std::shared_ptr<DiscreteCostFunction> getCostFunction() = 0;
 
@@ -37,6 +40,7 @@ public:
     virtual inline double computeTripletCost(int triplet, int labelA, int labelB, int labelC) { return 0; }
     virtual double inline computeTripletCostTri(int trID, int labelA, int labelB, int labelC) { return 0; }
     virtual inline double evaluateTotalCostSum() { return 0; }
+    virtual inline double computeQuartetCost(int triplet, int labelA, int labelB, int labelC, int labelD) { return 0; }
 
     //---MODIFY---//
     virtual void applyLabeling(int *discreteLabeling) {}
@@ -57,9 +61,11 @@ protected:
     int m_num_labels = 0;   // Number of labels.
     int m_num_pairs = 0;    // Number of node pairs.
     int m_num_triplets = 0; // Number of node triplets.
+    int m_num_quartets = 0;
     int* labeling = nullptr;      // Labeling array.
     int* pairs = nullptr;         // Node pairs array.
     int* triplets = nullptr;      // Node triplets array.
+    int* quartets = nullptr;
 
     std::string m_outdir;
     bool m_verbosity = false;
@@ -144,6 +150,7 @@ protected:
     std::shared_ptr<newresampler::Octree> m_inputtree;
 
     int m_SGres = 4; // sampling grid resolution
+    int m_CPres = 2;
     int m_iter = 0; // iteration of the discrete optimisation
     int m_centroid = 0; // used for selecting which sampling grid vertex will form the center of the sampling grid
     int m_regoption = 2; // sim measure i.e. correlation
@@ -158,6 +165,7 @@ protected:
     bool _pairwise = false;
     bool m_rescalelabels = false;
     newresampler::Point centre;
+    bool _estquartet = false;
 
     std::vector<newresampler::Point> m_samples;  // samples based on  vertices of sampling grid
     std::vector<newresampler::Point> m_barycentres; // samples based on barycentres of sampling grid

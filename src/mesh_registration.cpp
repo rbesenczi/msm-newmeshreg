@@ -422,18 +422,7 @@ void Mesh_registration::set_input(const std::string &M) {
     recentre(MESHES[0]);
     true_rescale(MESHES[0], RAD);
 }
-/*
-void Mesh_registration::set_inputs(const std::string& s) {
-    std::vector<std::string> meshlist = read_ascii_list(s);
-    newresampler::Mesh tmp;
-    MESHES.clear();
-    for (int i = 0; i < meshlist.size(); i++) {
-        if (_verbose) std::cout << i << " " << meshlist[i] << std::endl;
-        tmp.load(meshlist[i]);
-        MESHES.push_back(tmp);
-    }
-}
-*/
+
 void Mesh_registration::set_reference(const newresampler::Mesh &M) {
     MESHES[1] = M;
     recentre(MESHES[1]);

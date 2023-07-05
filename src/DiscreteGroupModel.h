@@ -1,6 +1,8 @@
 #ifndef NEWMESHREG_DISCRETEGROUPMODEL_H
 #define NEWMESHREG_DISCRETEGROUPMODEL_H
 
+#include <memory>
+
 #include "DiscreteModel.h"
 #include "DiscreteGroupCostFunction.h"
 
@@ -24,11 +26,8 @@ public:
     explicit DiscreteGroupModel(myparam& p) {
         set_parameters(p);
         costfct = std::shared_ptr<NonLinearSRegDiscreteCostFunction>(new DiscreteGroupCostFunction());
-        /*
-         * relations
-         * m_inputrel=boost::shared_ptr<RELATIONS >(new RELATIONS());
-         * m_cp_neighbourhood=boost::shared_ptr<RELATIONS >(new RELATIONS ());
-         */
+        m_inputrel = std::shared_ptr<RELATIONS>(new RELATIONS());
+        m_cp_neighbourhood = std::shared_ptr<RELATIONS>(new RELATIONS());
         costfct->set_parameters(p);
     }
 
@@ -57,21 +56,19 @@ public:
 
     newresampler::Mesh get_CPgrid(int num = 0) override { return m_controlmeshes[num]; }
 
-    void initialize_quartets();
     void initialize_pairs();
+    void initialize_quartets();
 
     void estimate_pairs() override;
     void estimate_triplets() override;
     void estimate_quartets();
     void estimate_combinations(int, int*);
 
-    void Initialize(const newresampler::Mesh&) override;
-    //void Initialize(){};
+    void Initialize(const newresampler::Mesh& controlgrid) override;
     void get_rotations(std::vector<NEWMAT::Matrix>&) override;
     void setupCostFunction() override;
 
     void get_between_subject_pairs();
-    //void resample_to_template();
 };
 
 } //namespace newmeshreg

@@ -28,7 +28,6 @@ public:
     //---SET FUNCTIONS---//
     void set_input(const newresampler::Mesh& M);
     void set_input(const std::string &M);
-    //void set_inputs(const std::string& s);
     void set_reference(const newresampler::Mesh &M);
     void set_reference(const std::string& M);
     void set_anatomical(const std::string &M1, const std::string &M2);
@@ -43,7 +42,6 @@ public:
     inline void set_debug(bool test) { _debug = test; }
     inline void set_CMpathin(const std::string& s) { CMfile_in = s; }
     inline void set_CMpathref(const std::string& s) { CMfile_ref = s; }
-    //inline void set_data_list(const std::string& s) { DATAlist = read_ascii_list(s); }
 
     //---GET FUNCTIONS---//
     inline newresampler::Mesh return_registered_input_mesh() const { return MESHES[0]; }
