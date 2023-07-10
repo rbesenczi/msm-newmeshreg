@@ -141,20 +141,20 @@ protected:
     std::vector<std::string> read_ascii_list(const std::string& filename);
 
     //---PREPROCESSING---//
-    void initialize_level(int current_lvl);
+    virtual void initialize_level(int current_lvl);
     NEWMAT::Matrix combine_costfunction_weighting(const NEWMAT::Matrix &, const NEWMAT::Matrix &);
     newresampler::Mesh resample_anatomy(const newresampler::Mesh& control_grid, std::vector<std::map<int,double>>& baryweights, std::vector<std::vector<int>>& ANAT_to_CPgrid_neighbours, int current_lvl);
     NEWMAT::Matrix downsample_cfweighting(double sigma, const newresampler::Mesh& SPH, std::shared_ptr<newresampler::Mesh> CFWEIGHTING, std::shared_ptr<newresampler::Mesh> EXCL);
     newresampler::Mesh project_CPgrid(newresampler::Mesh SPH_in, newresampler::Mesh REG, int num = 0);
 
     //---RUN---//
-    void evaluate();
-    void transform(const std::string& filename);
+    virtual void evaluate();
+    virtual void transform(const std::string& filename);
     void run_discrete_opt(newresampler::Mesh&);
 
     //---POSTPROCESSING---//
-    inline void saveSPH_reg(const std::string& filename) const { SPH_reg.save(filename + "sphere.LR.reg" + _surfformat); }
-    void save_transformed_data(const std::string& filename);
+    virtual inline void saveSPH_reg(const std::string& filename) const { SPH_reg.save(filename + "sphere.LR.reg" + _surfformat); }
+    virtual void save_transformed_data(const std::string& filename);
 };
 
 } //namespace newmeshreg

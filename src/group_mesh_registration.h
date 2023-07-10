@@ -13,13 +13,13 @@ class Group_Mesh_registration : public Mesh_registration {
     newresampler::Mesh templ;
 
 public:
-    void initialize_level(int current_lvl);
-    void evaluate();
-    void transform(const std::string& filename);
+    void initialize_level(int current_lvl) override;
+    void evaluate() override;
+    void transform(const std::string& filename) override;
     void run_discrete_opt(std::vector<newresampler::Mesh>&);
-    void save_transformed_data(const std::string& filename);
+    void save_transformed_data(const std::string& filename) override;
 
-    inline void saveSPH_reg(const std::string& filename) const {
+    inline void saveSPH_reg(const std::string& filename) const override {
         for(int i = 0; i < ALL_SPH_REG.size(); ++i)
             ALL_SPH_REG[i].save(filename + "sphere-" + std::to_string(i) + ".LR.reg" + _surfformat);
     }

@@ -37,9 +37,9 @@ void NonLinearSRegDiscreteModel::initialize_cost_function(bool MV, myparam& P) {
 
 void NonLinearSRegDiscreteModel::Initialize(const newresampler::Mesh& CONTROLGRID) {
 
-    double MVDmax = 0.0;
+    //double MVDmax = 0.0;
     MVD = 0.0;
-    int tot = 0;
+    //int tot = 0;
     m_CPgrid = CONTROLGRID;
 
     //---SET LOW RES DEFORMATION GRID & INITIALISE ASSOCIATED MRF PARAMS---//
@@ -64,7 +64,7 @@ void NonLinearSRegDiscreteModel::Initialize(const newresampler::Mesh& CONTROLGRI
     }
 
     MVD = m_CPgrid.calculate_MeanVD();
-    MVDmax = m_CPgrid.calculate_MaxVD();
+    double MVDmax = m_CPgrid.calculate_MaxVD();
 
     m_maxs_dist = _labeldist * MVDmax;
 

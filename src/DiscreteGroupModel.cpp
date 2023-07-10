@@ -11,7 +11,7 @@ void DiscreteGroupModel::initialize_pairs() {
                 if (n2 > n)
                     m_num_pairs++;
 }
-
+/*
 void DiscreteGroupModel::initialize_quartets() {
 
     m_num_quartets = 0; // number of combinations *nvertices
@@ -30,7 +30,7 @@ void DiscreteGroupModel::initialize_quartets() {
         while (next_combination(subjects.begin(), subjects.begin() + k, subjects.end()));
     }
 }
-
+*/
 void DiscreteGroupModel::estimate_pairs() {
 
     int pair = 0;
@@ -48,13 +48,13 @@ void DiscreteGroupModel::estimate_pairs() {
                     pair++;
                 }
 }
-
+/*
 void DiscreteGroupModel::estimate_quartets() {
 
     quartets = new int[m_num_quartets*4];
     estimate_combinations(4,quartets);
 }
-
+*/
 void DiscreteGroupModel::estimate_combinations(int k, int* combinations) {
 
     int ind = 0;
@@ -94,7 +94,7 @@ void DiscreteGroupModel::estimate_triplets() {
 
 void DiscreteGroupModel::get_between_subject_pairs() {
 
-    //TODO need to change relations to octree
+    //TODO need to work on m_TEMPLATE_LR_ALL_RELATIONS...
 
     double ang = 2 * asin(MVD / RAD);
     between_subject_pairs.clear();
@@ -155,6 +155,7 @@ void DiscreteGroupModel::Initialize(const newresampler::Mesh& controlgrid) {
     control_grid_size = controlgrid.nvertices();
     m_num_nodes = control_grid_size * m_num_subjects;
     m_controlmeshes.clear();
+    m_controlmeshes.resize(m_num_subjects, controlgrid);
     m_template_LR = controlgrid;
 
     if(m_debug)
@@ -163,12 +164,13 @@ void DiscreteGroupModel::Initialize(const newresampler::Mesh& controlgrid) {
         m_template_LR.save("TEMPLATE_res" + std::to_string(m_CPres) + ".surf.gii");
     }
 
+    /*
     for(int n = 0; n < m_num_subjects; n++)
         m_controlmeshes.push_back(controlgrid);
-
+    */
     //---INITIALIZE REGULARISATION TRIPLETS---//
     initialize_pairs();
-    if(_estquartet && m_num_subjects >= 4) initialize_quartets();
+    //if(_estquartet && m_num_subjects >= 4) initialize_quartets();
     estimate_triplets();
 
     //---CALCULATE FIXED GRID SPACINGS---//
@@ -180,16 +182,15 @@ void DiscreteGroupModel::Initialize(const newresampler::Mesh& controlgrid) {
     Initialize_sampling_grid();
 
     //---INITIALIZE NEIGHBOURHOODS---//
-    m_cp_neighbourhood=std::shared_ptr<RELATIONS>(new RELATIONS(m_DATAMESHES[0], controlgrid, 2 * asin(MVD / RAD)));
+    //m_cp_neighbourhood=std::shared_ptr<RELATIONS>(new RELATIONS(m_DATAMESHES[0], controlgrid, 2 * asin(MVD / RAD)));
     // as source mesh moves with control grid the relationships are constant for all meshes
-    m_inputrel=std::shared_ptr<RELATIONS>(new RELATIONS(m_DATAMESHES[0],m_TEMPLATE,2*asin(MVD/RAD)));
-    m_cp_neighbourhood->update_RELATIONS(m_DATAMESHES[0]);
+    //m_inputrel=std::shared_ptr<RELATIONS>(new RELATIONS(m_DATAMESHES[0],m_TEMPLATE,2*asin(MVD/RAD)));
+    m_inputtree = std::make_shared<newresampler::Octree>(m_template);
+    //m_cp_neighbourhood->update_RELATIONS(m_DATAMESHES[0]);
 
-    if(costfct)
-    {
-        costfct->set_meshes(m_template, m_datameshes[0], controlgrid, m_datameshes.size());
-        costfct->set_relations(m_cp_neighbourhood,m_inputrel);
-    }
+    costfct->set_meshes(m_template, m_datameshes[0], controlgrid, m_datameshes.size());
+    //costfct->set_relations(m_cp_neighbourhood,m_inputrel);
+    //costfct->set_octrees(m_inputtree);
     m_iter = 1;
 }
 
@@ -207,7 +208,7 @@ void DiscreteGroupModel::setupCostFunction() {
     get_between_subject_pairs();
 
     estimate_pairs();
-    if(_estquartet) estimate_quartets();
+    //if(_estquartet) estimate_quartets();
 
     //---GET LABEL SPACE---//
     get_rotations(m_ROT);
@@ -224,7 +225,7 @@ void DiscreteGroupModel::setupCostFunction() {
 
     costfct->setPairs(pairs);
     costfct->setTriplets(triplets);
-    if(_estquartet) costfct->setQuartets(quartets);
+    //if(_estquartet) costfct->setQuartets(quartets);
 
     costfct->initialize(m_num_nodes, m_num_labels, m_num_pairs, m_num_triplets, m_num_quartets);
 

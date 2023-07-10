@@ -12,7 +12,7 @@ void DiscreteGroupCostFunction::set_parameters(myparam& p) {
     it=p.find("shearmodulus");_mu=boost::get<float>(it->second);
     it=p.find("bulkmodulus");_kappa=boost::get<float>(it->second);
     it=p.find("sigma_in");_sigma=boost::get<float>(it->second);
-    it=p.find("quartet");_quadcost=boost::get<bool>(it->second);
+    //it=p.find("quartet");_quadcost=boost::get<bool>(it->second);
 }
 
 void DiscreteGroupCostFunction::get_spacings() {
@@ -45,9 +45,9 @@ void DiscreteGroupCostFunction::initialize(int numNodes, int numLabels, int numP
     resample_to_template();
     get_spacings();
     resample_patches();
-
+/*
     if (_quadcost && !_setpairs)
-        _lambdapairs = (double) m_num_quartets / (double) m_num_pairs;
+        _lambdapairs = (double) m_num_quartets / (double) m_num_pairs;*/
 }
 
 void DiscreteGroupCostFunction::define_template_patches() {
@@ -90,10 +90,12 @@ void DiscreteGroupCostFunction::resample_to_template() {
     for(int n = 0; n < num_subjects; n++)
     {
         RESAMPLEDDATA.push_back(FEAT->get_data_matrix(n));
-        R.resampledata(_DATAMESHES[n],_TEMPLATE,RESAMPLEDDATA[n],0.0,_targetrel);
+        _TEMPLATE.set_pvalues(RESAMPLEDDATA[n]);
+        newresampler::metric_resample(_DATAMESHES[n],_TEMPLATE);
+        //R.resampledata(_DATAMESHES[n],_TEMPLATE,RESAMPLEDDATA[n],0.0,_targetrel);
     }
 }
-
+/*
 double DiscreteGroupCostFunction::computeQuartetCost(int quartet, int labelA, int labelB, int labelC, int labelD) {
 
     double cost=0;
@@ -149,7 +151,7 @@ double DiscreteGroupCostFunction::computeQuartetCost(int quartet, int labelA, in
 
     return _lambdapairs * cost;
 }
-
+*/
 double DiscreteGroupCostFunction::computeTripletCost(int triplet, int labelA, int labelB, int labelC) {
 
     int meshID = floor(triplet/TRIPLETS_PER_SUBJ);

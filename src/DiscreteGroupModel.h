@@ -26,14 +26,15 @@ public:
     explicit DiscreteGroupModel(myparam& p) {
         set_parameters(p);
         costfct = std::shared_ptr<NonLinearSRegDiscreteCostFunction>(new DiscreteGroupCostFunction());
-        m_inputrel = std::shared_ptr<RELATIONS>(new RELATIONS());
-        m_cp_neighbourhood = std::shared_ptr<RELATIONS>(new RELATIONS());
+        //m_inputrel = std::shared_ptr<RELATIONS>(new RELATIONS());
+        //m_cp_neighbourhood = std::shared_ptr<RELATIONS>(new RELATIONS());
         costfct->set_parameters(p);
     }
 
     void set_meshspace(const newresampler::Mesh& target, const newresampler::Mesh& source, int num = 1) override {
         m_template = target;
         m_datameshes.clear();
+        m_datameshes.reserve(num);
         m_num_subjects = num;
         for(int i = 0; i < num; ++i)
             m_datameshes.push_back(source);
@@ -57,11 +58,11 @@ public:
     newresampler::Mesh get_CPgrid(int num = 0) override { return m_controlmeshes[num]; }
 
     void initialize_pairs();
-    void initialize_quartets();
+    //void initialize_quartets();
 
     void estimate_pairs() override;
     void estimate_triplets() override;
-    void estimate_quartets();
+    //void estimate_quartets();
     void estimate_combinations(int, int*);
 
     void Initialize(const newresampler::Mesh& controlgrid) override;

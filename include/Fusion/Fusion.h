@@ -125,7 +125,7 @@ public:
 
         const int *pairs    = energy->getPairs();
         const int* triplets = energy->getTriplets();
-        const int *quartets = energy->getQuartets();
+        //const int *quartets = energy->getQuartets();
 
         int *labeling = energy->getLabeling();
         std::shared_ptr<DiscreteModelDummy> FPDMODEL = std::make_shared<DiscreteModelDummy>();
@@ -210,6 +210,7 @@ public:
                         pbf.AddHigherTerm(3, node_ids, triplet_data[triplet].buffer);
                     }
 
+                    /*
                     std::vector<QuartetData> quartet_data(energy->getNumQuartets());
 
                     #pragma omp parallel for num_threads(numthreads)
@@ -252,6 +253,7 @@ public:
                             pbf.AddHigherTerm(4, node_ids, quartet_data[quartet].buffer);
                         }
                     }
+                    */
 
                     FPDMODEL->reset();
 
