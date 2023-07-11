@@ -15,7 +15,6 @@ void NonLinearSRegDiscreteModel::set_parameters(myparam& PAR) {
     it=PAR.find("rescalelabels"); m_rescalelabels = boost::get<bool>(it->second);
     it=PAR.find("numthreads"); _nthreads = boost::get<int>(it->second);
     it=PAR.find("labeldist"); _labeldist = boost::get<double>(it->second);
-    it=PAR.find("quartet"); _estquartet=boost::get<bool>(it->second);
     if(m_regoption == 1) _pairwise = true;
 }
 
@@ -37,9 +36,7 @@ void NonLinearSRegDiscreteModel::initialize_cost_function(bool MV, myparam& P) {
 
 void NonLinearSRegDiscreteModel::Initialize(const newresampler::Mesh& CONTROLGRID) {
 
-    //double MVDmax = 0.0;
     MVD = 0.0;
-    //int tot = 0;
     m_CPgrid = CONTROLGRID;
 
     //---SET LOW RES DEFORMATION GRID & INITIALISE ASSOCIATED MRF PARAMS---//
@@ -75,8 +72,7 @@ void NonLinearSRegDiscreteModel::Initialize(const newresampler::Mesh& CONTROLGRI
     costfct->set_spacings(vMAXmvd, MVDmax);
 
     m_iter = 1;
-
-    m_scale = 1;
+    m_scale = 1.0;
 
     if (_pairwise)
         estimate_pairs();
@@ -85,7 +81,6 @@ void NonLinearSRegDiscreteModel::Initialize(const newresampler::Mesh& CONTROLGRI
 
     //---INITIALIAZE LABEL GRID---//
     Initialize_sampling_grid();
-
     get_rotations(m_ROT);  // enables rotation of sampling grid onto every CP
 
     //---INITIALIZE NEIGHBOURHOODS---//
@@ -111,7 +106,6 @@ void NonLinearSRegDiscreteModel::label_sampling_grid(int centroid, double dist, 
     m_samples.clear();
     m_barycentres.clear();
     std::vector<int> getneighbours, newneighbours;
-    //int label = 1;
     NEWMAT::ColumnVector found(Grid.nvertices()), found_tr(Grid.ntriangles());
     found = 0; found_tr = 0;
 
@@ -154,12 +148,9 @@ void NonLinearSRegDiscreteModel::label_sampling_grid(int centroid, double dist, 
                                      ((bary - centre).norm() * (m_barycentre - centre).norm()))) < 1e-2)
                             found_tr(*j + 1) = 1;
 
-                    if(found_tr(*j+1) == 0)
-                    {
+                    if (found_tr(*j + 1) == 0)
                         m_barycentres.push_back(bary);
-                        //Grid.set_pvalue(Grid.get_triangle(*j).get_vertex_no(0),label);
-                        //label++;
-                    }
+
                     found_tr(*j+1) = 1;
                 }
             }

@@ -58,12 +58,9 @@ public:
     newresampler::Mesh get_CPgrid(int num = 0) override { return m_controlmeshes[num]; }
 
     void initialize_pairs();
-    //void initialize_quartets();
 
     void estimate_pairs() override;
     void estimate_triplets() override;
-    //void estimate_quartets();
-    void estimate_combinations(int, int*);
 
     void Initialize(const newresampler::Mesh& controlgrid) override;
     void get_rotations(std::vector<NEWMAT::Matrix>&) override;

@@ -2,7 +2,7 @@
 
 namespace newmeshreg {
 
-void DiscreteCostFunction::initialize(int numNodes, int numLabels, int numPairs, int numTriplets, int numQuartets) {
+void DiscreteCostFunction::initialize(int numNodes, int numLabels, int numPairs, int numTriplets) {
 
     if (m_num_nodes != numNodes || m_num_labels != numLabels)
     {
@@ -26,7 +26,6 @@ void DiscreteCostFunction::initialize(int numNodes, int numLabels, int numPairs,
     m_num_labels = numLabels;
     m_num_pairs = numPairs;
     m_num_triplets = numTriplets;
-    m_num_quartets = numQuartets;
 
     std::fill(unarycosts,unarycosts+m_num_labels*m_num_nodes,0.0f);
     std::fill(paircosts,paircosts+m_num_labels*m_num_labels*m_num_pairs,0.0f);
@@ -109,7 +108,7 @@ bool NonLinearSRegDiscreteCostFunction::within_controlpt_range(int CPindex, int 
              < _controlptrange * MAXSEP(CPindex + 1));
 }
 
-void NonLinearSRegDiscreteCostFunction::initialize(int numNodes, int numLabels, int numPairs, int numTriplets, int numQuartets) {
+void NonLinearSRegDiscreteCostFunction::initialize(int numNodes, int numLabels, int numPairs, int numTriplets) {
     if (_TARGET.nvertices() == 0 || _SOURCE.nvertices() == 0)
         throw MeshregException("CostFunction::You must supply source and target meshes.");
     if(_HIGHREScfweight.Ncols() != _SOURCE.nvertices())
@@ -378,7 +377,7 @@ void NonLinearSRegDiscreteCostFunction::resample_weights(){
     AbsoluteWeights = newresampler::metric_resample(tmp, _CPgrid, _threads).get_pvalues();
 }
 
-void UnivariateNonLinearSRegDiscreteCostFunction::initialize(int numNodes, int numLabels, int numPairs, int numTriplets, int numQuartets) {
+void UnivariateNonLinearSRegDiscreteCostFunction::initialize(int numNodes, int numLabels, int numPairs, int numTriplets) {
 
     NonLinearSRegDiscreteCostFunction::initialize(numNodes, numLabels, numPairs, numTriplets);
     _sourcedata.clear(); _sourcedata.resize(_CPgrid.nvertices());
@@ -443,7 +442,7 @@ double UnivariateNonLinearSRegDiscreteCostFunction::computeUnaryCost(int node, i
         return -cost;
 }
 
-void MultivariateNonLinearSRegDiscreteCostFunction::initialize(int numNodes, int numLabels, int numPairs, int numTriplets, int numQuartets) {
+void MultivariateNonLinearSRegDiscreteCostFunction::initialize(int numNodes, int numLabels, int numPairs, int numTriplets) {
     NonLinearSRegDiscreteCostFunction::initialize(numNodes, numLabels, numPairs, numTriplets);
     _sourcedata.clear(); _sourcedata.resize(_SOURCE.nvertices());
     _sourceinrange.clear(); _sourceinrange.resize(_CPgrid.nvertices());
@@ -521,7 +520,7 @@ double MultivariateNonLinearSRegDiscreteCostFunction::computeUnaryCost(int node,
         return -AbsoluteWeights(node + 1) * cost;
 }
 
-void HOUnivariateNonLinearSRegDiscreteCostFunction::initialize(int numNodes, int numLabels, int numPairs, int numTriplets, int numQuartets) {
+void HOUnivariateNonLinearSRegDiscreteCostFunction::initialize(int numNodes, int numLabels, int numPairs, int numTriplets) {
         NonLinearSRegDiscreteCostFunction::initialize(numNodes, numLabels, numPairs, numTriplets);
         _sourcedata.clear(); _sourcedata.resize(_CPgrid.ntriangles());
         _sourceinrange.clear(); _sourceinrange.resize(_CPgrid.ntriangles());
@@ -601,7 +600,7 @@ double HOUnivariateNonLinearSRegDiscreteCostFunction::triplet_likelihood(int tri
         return -cost;
 }
 
-void HOMultivariateNonLinearSRegDiscreteCostFunction::initialize(int numNodes, int numLabels, int numPairs, int numTriplets, int numQuartets) {
+void HOMultivariateNonLinearSRegDiscreteCostFunction::initialize(int numNodes, int numLabels, int numPairs, int numTriplets) {
     NonLinearSRegDiscreteCostFunction::initialize(numNodes, numLabels, numPairs, numTriplets);
     _sourcedata.clear(); _sourcedata.resize(_SOURCE.nvertices());
     _sourceinrange.clear(); _sourceinrange.resize(_CPgrid.ntriangles());

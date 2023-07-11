@@ -12,7 +12,6 @@ void DiscreteGroupCostFunction::set_parameters(myparam& p) {
     it=p.find("shearmodulus");_mu=boost::get<float>(it->second);
     it=p.find("bulkmodulus");_kappa=boost::get<float>(it->second);
     it=p.find("sigma_in");_sigma=boost::get<float>(it->second);
-    //it=p.find("quartet");_quadcost=boost::get<bool>(it->second);
 }
 
 void DiscreteGroupCostFunction::get_spacings() {
@@ -36,18 +35,12 @@ void DiscreteGroupCostFunction::get_spacings() {
     }
 }
 
-void DiscreteGroupCostFunction::initialize(int numNodes, int numLabels, int numPairs, int numTriplets,
-                                           int numQuartets) {
-
-    DiscreteCostFunction::initialize(numNodes,numLabels,numPairs,numTriplets,numQuartets);
-
+void DiscreteGroupCostFunction::initialize(int numNodes, int numLabels, int numPairs, int numTriplets) {
+    DiscreteCostFunction::initialize(numNodes, numLabels, numPairs, numTriplets);
     define_template_patches();
     resample_to_template();
     get_spacings();
     resample_patches();
-/*
-    if (_quadcost && !_setpairs)
-        _lambdapairs = (double) m_num_quartets / (double) m_num_pairs;*/
 }
 
 void DiscreteGroupCostFunction::define_template_patches() {
@@ -95,63 +88,7 @@ void DiscreteGroupCostFunction::resample_to_template() {
         //R.resampledata(_DATAMESHES[n],_TEMPLATE,RESAMPLEDDATA[n],0.0,_targetrel);
     }
 }
-/*
-double DiscreteGroupCostFunction::computeQuartetCost(int quartet, int labelA, int labelB, int labelC, int labelD) {
 
-    double cost=0;
-    std::vector<int> indices(4,0);
-    std::vector<int> rows;
-    int mesh_ID, index = 0;
-    std::map<int,int> testsubjects;
-    bool found;
-
-    indices[0]=labelA+_quartets[4*quartet]*_labels.size();
-    indices[1]=labelB+_quartets[4*quartet+1]*_labels.size();
-    indices[2]=labelC+_quartets[4*quartet+2]*_labels.size();
-    indices[3]=labelD+_quartets[4*quartet+3]*_labels.size();
-
-    for(int i = 0; i < 4; i++)
-    {
-        mesh_ID = std::floor(_quartets[4*quartet+i]/VERTICES_PER_SUBJ);
-        testsubjects[mesh_ID] = indices[i];
-    }
-
-    for (auto iter = PATCHDATA[indices[0]].begin(); iter != PATCHDATA[indices[0]].end(); ++iter)
-    {
-        found = true;
-        for (int i = 1; i < 4; i++)
-            if (PATCHDATA[indices[i]].find(iter->first) == PATCHDATA[indices[i]].end())
-                found = false;
-        if (found)
-            rows.push_back(iter->first);
-    }
-
-    NEWMAT::Matrix Groupdata(rows.size(),num_subjects);
-    Groupdata = 0;
-
-    if(rows.size() > 0)
-    {
-        for (int n = 0; n < num_subjects; n++)
-            for (int r = 0; r < rows.size(); r++)
-                // first add all the test subjects then add remaining subjects?
-                if (testsubjects.find(n) != testsubjects.end())
-                    Groupdata(r + 1, n + 1) = PATCHDATA[testsubjects[n]].find(rows[r])->second;
-                else
-                    Groupdata(r + 1, n + 1) = RESAMPLEDDATA[n](1, rows[r] + 1);
-
-
-        NEWMAT::DiagonalMatrix eigenvals;
-        SVD(Groupdata,eigenvals);
-
-        for (int i = 1; i <= eigenvals.Nrows(); i++)
-            cost += eigenvals(i);
-    }
-    else
-        cost = 1e6;
-
-    return _lambdapairs * cost;
-}
-*/
 double DiscreteGroupCostFunction::computeTripletCost(int triplet, int labelA, int labelB, int labelC) {
 
     int meshID = floor(triplet/TRIPLETS_PER_SUBJ);

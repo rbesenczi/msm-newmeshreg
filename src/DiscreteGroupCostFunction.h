@@ -33,15 +33,13 @@ public:
     }
 
     //---INITIALISATION---//
-    void initialize(int numNodes, int numLabels, int numPairs, int numTriplets = 0, int numQuartets = 0); // quartets not used yet so no code for them below
+    void initialize(int numNodes, int numLabels, int numPairs, int numTriplets); // quartets not used yet so no code for them below
     void define_template_patches();
     void resample_to_template();
 
     //---Updates---//
     void reset_source(const newresampler::Mesh& source, int num = 0) override { _DATAMESHES[num] = source; }
     virtual void reset_CPgrid(const newresampler::Mesh& grid, int num = 0) { _CONTROLMESHES[num] = grid; }
-
-    //double computeQuartetCost(int quartet, int labelA, int labelB, int labelC,int labelD);
 
     double computeTripletCost(int triplet, int labelA, int labelB, int labelC) override;
     double computePairwiseCost(int pair, int labelA, int labelB) override;
@@ -55,8 +53,6 @@ private:
     std::vector<newresampler::Mesh> _CONTROLMESHES; // TARGET MESH
     newresampler::Mesh _TEMPLATE;
 
-    //std::vector<std::shared_ptr<RELATIONS>> _CONTROLRELATIONS; // hold control grid neighbours of each source vertex
-    //std::vector<std::shared_ptr<RELATIONS>> _TEMPLATERELATIONS; // hold target grid neighbours of each source vertex
     std::vector<std::vector<int>> TEMPLATEPTS;
     std::vector<NEWMAT::ColumnVector> SPACINGS;
 
@@ -72,7 +68,6 @@ private:
     int TRIPLETS_PER_SUBJ = 0;
     int VERTICES_PER_SUBJ = 0;
 
-    //bool _quadcost = false;
     bool _setpairs = false;
 };
 

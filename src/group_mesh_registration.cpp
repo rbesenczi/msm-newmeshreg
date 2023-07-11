@@ -65,13 +65,10 @@ void Group_Mesh_registration::transform(const std::string &filename) {
 void Group_Mesh_registration::run_discrete_opt(std::vector<newresampler::Mesh>& meshes) {
 
     int iter = 1;
-    //int numNodes = model->getNumNodes();
     double energy = 0.0, newenergy = 0.0;
     newresampler::Mesh transformed_controlgrid, targetmesh = model->get_TARGET();
     std::vector<newresampler::Mesh> controlgrid;
 
-    //myparam::iterator it;
-    //it=PARAMETERS.find("CPres"); const int res = boost::get<int>(it->second);
     auto it = PARAMETERS.find("iters");
     const int _itersforlevel = boost::get<int>(it->second);
 
@@ -84,7 +81,6 @@ void Group_Mesh_registration::run_discrete_opt(std::vector<newresampler::Mesh>& 
             controlgrid.push_back(model->get_CPgrid(i));
         }
         model->setupCostFunction();
-        //int* labels = model->getLabeling();
 #ifdef HAS_HOCR
         newenergy = Fusion::optimize(model, _verbose, _numthreads);
 #else

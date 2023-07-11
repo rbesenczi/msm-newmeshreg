@@ -24,7 +24,6 @@ public:
     virtual void reset(); //Resets all costs to zero.
     void setPairs(int* p) { _pairs = p; } //Sets the pairs index buffer.
     void setTriplets(int* p) { _triplets = p; } //Sets the pairs index buffer.
-    void setQuartets(int* p) { _quartets = p; }
 
     //---GET--//
     double* getUnaryCosts() { return unarycosts; } //Returns the unary costs look-up table.
@@ -42,13 +41,12 @@ public:
     virtual double evaluateTotalCostSum(const int *labeling, const int *pairs, const int *triplets); //Evaluates the total cost for the given labeling.
 
 protected:
-    virtual void initialize(int numNodes, int numLabels, int numPairs, int numTriplets, int numQuartets = 0);
+    virtual void initialize(int numNodes, int numLabels, int numPairs, int numTriplets);
 
     int m_num_nodes = 0;
     int	m_num_labels = 0;
     int m_num_pairs = 0;
     int m_num_triplets = 0;
-    int m_num_quartets = 0;
 
     double* unarycosts = nullptr; // Unary potentials look-up table.
     double* paircosts = nullptr; // Pairwise potentials look-up table.
@@ -56,7 +54,6 @@ protected:
 
     int* _pairs = nullptr;
     int* _triplets = nullptr;
-    int* _quartets = nullptr;
 
     float _reglambda = 1.0;  // scaling parameter for regulariser
 
@@ -132,7 +129,7 @@ protected:
 
 public:
     //---INIT---//
-    void initialize(int numNodes, int numLabels, int numPairs, int numTriplets, int numQuartets = 0) override;
+    void initialize(int numNodes, int numLabels, int numPairs, int numTriplets) override;
 
     virtual void set_parameters(myparam&);
 
@@ -194,7 +191,7 @@ public:
 
 class UnivariateNonLinearSRegDiscreteCostFunction: public NonLinearSRegDiscreteCostFunction {
 public:
-    void initialize(int numNodes, int numLabels, int numPairs, int numTriplets, int numQuartets = 0) override;
+    void initialize(int numNodes, int numLabels, int numPairs, int numTriplets) override;
     void get_source_data() override;
     void get_target_data(int node, const NEWMAT::Matrix& PtROTATOR) override;
     double computeUnaryCost(int node, int label) override;
@@ -203,7 +200,7 @@ public:
 
 class MultivariateNonLinearSRegDiscreteCostFunction: public NonLinearSRegDiscreteCostFunction {
 public:
-    void initialize(int numNodes, int numLabels, int numPairs, int numTriplets, int numQuartets = 0) override;
+    void initialize(int numNodes, int numLabels, int numPairs, int numTriplets) override;
     void get_source_data() override;
     void get_target_data(int node, const NEWMAT::Matrix& PtROTATOR) override;
     double computeUnaryCost(int node, int label) override;
@@ -212,7 +209,7 @@ public:
 
 class HOUnivariateNonLinearSRegDiscreteCostFunction: public UnivariateNonLinearSRegDiscreteCostFunction {
 public:
-    void initialize(int numNodes, int numLabels, int numPairs, int numTriplets, int numQuartets = 0) override;
+    void initialize(int numNodes, int numLabels, int numPairs, int numTriplets) override;
     void get_source_data() override;
     void get_target_data(int triplet, const newresampler::Point& new_CP0, const newresampler::Point& new_CP1, const newresampler::Point& new_CP2);
     inline double computeUnaryCost(int node, int label) override { return 0; }
@@ -221,7 +218,7 @@ public:
 
 class HOMultivariateNonLinearSRegDiscreteCostFunction: public MultivariateNonLinearSRegDiscreteCostFunction {
 public:
-    void initialize(int numNodes, int numLabels, int numPairs, int numTriplets, int numQuartets = 0) override;
+    void initialize(int numNodes, int numLabels, int numPairs, int numTriplets) override;
     void get_source_data() override;
     void get_target_data(int triplet, const newresampler::Point& new_CP0, const newresampler::Point& new_CP1, const newresampler::Point& new_CP2);
     inline double computeUnaryCost(int node, int label) override { return 0; }
