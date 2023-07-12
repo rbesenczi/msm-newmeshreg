@@ -139,10 +139,10 @@ void DiscreteGroupModel::Initialize(const newresampler::Mesh& controlgrid) {
 
     //---INITIALIZE NEIGHBOURHOODS---//
     //m_cp_neighbourhood=std::shared_ptr<RELATIONS>(new RELATIONS(m_DATAMESHES[0], controlgrid, 2 * asin(MVD / RAD)));
-    // as source mesh moves with control grid the relationships are constant for all meshes
-    //m_inputrel=std::shared_ptr<RELATIONS>(new RELATIONS(m_DATAMESHES[0],m_TEMPLATE,2*asin(MVD/RAD)));
-    //m_inputtree = std::make_shared<newresampler::Octree>(m_template);
     //m_cp_neighbourhood->update_RELATIONS(m_DATAMESHES[0]);
+    // as source mesh moves with control grid the relationships are constant for all meshes
+    //m_inputrel = std::shared_ptr<RELATIONS>(new RELATIONS(m_DATAMESHES[0],m_TEMPLATE,2*asin(MVD/RAD)));
+    //m_inputtree = std::make_shared<newresampler::Octree>(m_template);
     //costfct->set_relations(m_cp_neighbourhood,m_inputrel);
     //costfct->set_octrees(m_inputtree);
 
@@ -188,13 +188,6 @@ void DiscreteGroupModel::setupCostFunction() {
         std::cout << " numpoints " << m_num_nodes << " m_num_labels " << m_num_labels << " m_num_pairs " << m_num_pairs << std::endl;
 
     m_iter++;
-}
-
-void DiscreteGroupModel::applyLabeling(int* dlabels) {
-    for (int n = 0; n < m_num_subjects; n++)
-        for (int i = 0; i < m_controlmeshes[n].nvertices(); i++)
-            m_controlmeshes[n].set_coord(i, m_ROT[i + n * m_controlmeshes[n].nvertices()] *
-                                            m_labels[dlabels[i + n * m_controlmeshes[n].nvertices()]]);
 }
 
 } //namespace newmeshreg

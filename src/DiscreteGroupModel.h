@@ -34,10 +34,12 @@ public:
     void set_meshspace(const newresampler::Mesh& target, const newresampler::Mesh& source, int num = 1) override {
         m_template = target;
         m_datameshes.clear();
-        m_datameshes.reserve(num);
+        m_datameshes.resize(num, source);
         m_num_subjects = num;
+        /*
         for(int i = 0; i < num; ++i)
             m_datameshes.push_back(source);
+        */
     }
 
     void reset_meshspace(const newresampler::Mesh& source, int num = 0) override {
@@ -53,12 +55,16 @@ public:
     }
 
     void applyLabeling() override { applyLabeling(labeling); }
-    void applyLabeling(int* discreteLabeling) override;
+    void applyLabeling(int* dlabels) override {
+        for (int n = 0; n < m_num_subjects; n++)
+            for (int i = 0; i < m_controlmeshes[n].nvertices(); i++)
+                m_controlmeshes[n].set_coord(i, m_ROT[i + n * m_controlmeshes[n].nvertices()] *
+                                                m_labels[dlabels[i + n * m_controlmeshes[n].nvertices()]]);
+    }
 
     newresampler::Mesh get_CPgrid(int num = 0) override { return m_controlmeshes[num]; }
 
     void initialize_pairs();
-
     void estimate_pairs() override;
     void estimate_triplets() override;
 
