@@ -113,24 +113,58 @@ double DiscreteGroupCostFunction::computeTripletCost(int triplet, int labelA, in
 }
 
 double DiscreteGroupCostFunction::computePairwiseCost(int pair, int labelA, int labelB) {
-    //return sim.corr(PATCHDATA[labelA+_pairs[2*pair]*_labels.size()], PATCHDATA[labelB+_pairs[2*pair+1]*_labels.size()]);
 
-    // TODO, but the idea is this...
-    //use the regular triangular or circular patches here with get_target_data?.
+    //TODO check this, but the idea is this
     int nodeA = _pairs[2*pair];
     int nodeB = _pairs[2*pair+1];
 
-    newresampler::Point ptA = _CONTROLMESHES[pair/VERTICES_PER_SUBJ].get_coord(nodeA);
-    newresampler::Point ptB = _CONTROLMESHES[pair+1/VERTICES_PER_SUBJ].get_coord(nodeB);
+    int meshAID = std::floor((double)nodeA/VERTICES_PER_SUBJ);
+    int meshBID = std::floor((double)nodeB/VERTICES_PER_SUBJ);
 
-    auto rotA = newresampler::estimate_rotation_matrix(ptA, (*ROTATIONS)[nodeA]*_labels[labelA]);
-    auto rotB = newresampler::estimate_rotation_matrix(ptB, (*ROTATIONS)[nodeB]*_labels[labelB]);
+    int nodeAID = nodeA - meshAID*VERTICES_PER_SUBJ;
+    int nodeBID = nodeB - meshBID*VERTICES_PER_SUBJ;
 
-    std::vector<double> dataA = get_target_data_for_group(nodeA, rotA);
-    std::vector<double> dataB = get_target_data_for_group(nodeB, rotB);
-    std::vector<double> weight(100, 1.0);
+    auto rotA = newresampler::estimate_rotation_matrix(_CONTROLMESHES[meshAID].get_coord(nodeAID), (*ROTATIONS)[nodeA]*_labels[labelA]);
+    auto rotB = newresampler::estimate_rotation_matrix(_CONTROLMESHES[meshBID].get_coord(nodeBID), (*ROTATIONS)[nodeB]*_labels[labelB]);
 
-    return sim.get_sim_for_min(dataA, dataB, weight);
+    return sim.get_sim_for_min(get_patch_data(nodeA, rotA),
+                                get_patch_data(nodeB, rotB));
+}
+
+void DiscreteGroupCostFunction::get_source_data() {
+    //TODO get sourceinrange for nodes (all nodes, all meshes?)
+    _sourceinrange.resize(m_num_nodes);
+    for (int k = 0; k < _CPgrid.nvertices(); k++)
+        for (int i = 0; i < _SOURCE.nvertices(); i++)
+            if (within_controlpt_range(k, i))
+                _sourceinrange[k].push_back(i);
+}
+
+std::vector<double> DiscreteGroupCostFunction::get_patch_data(int node, const NEWMAT::Matrix& rot) {
+
+    //TODO
+    std::vector<double> data(_sourceinrange[node].size(), 0.0);
+
+    for(unsigned int i = 0; i < _sourceinrange[node].size(); i++)
+    {
+        newresampler::Point tmp = rot * _SOURCE.get_coord(_sourceinrange[node][i]);
+
+        newresampler::Triangle closest_triangle = targettree->get_closest_triangle(tmp);
+
+        newresampler::Point v0 = closest_triangle.get_vertex_coord(0),
+                            v1 = closest_triangle.get_vertex_coord(1),
+                            v2 = closest_triangle.get_vertex_coord(2);
+                        int n0 = closest_triangle.get_vertex_no(0),
+                            n1 = closest_triangle.get_vertex_no(1),
+                            n2 = closest_triangle.get_vertex_no(2);
+
+        data[i] = newresampler::barycentric_weight(v0, v1, v2, tmp,
+                                                    FEAT->get_ref_val(1, n0+1),
+                                                    FEAT->get_ref_val(1, n1+1),
+                                                    FEAT->get_ref_val(1, n2+1));
+    }
+
+    return data;
 }
 /*
 void DiscreteGroupCostFunction::resample_patches() {

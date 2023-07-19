@@ -47,10 +47,11 @@ public:
     //---Compute costs---//
     double computeTripletCost(int triplet, int labelA, int labelB, int labelC) override;
     double computePairwiseCost(int pair, int labelA, int labelB) override;
-
+    std::vector<double> get_patch_data(int, const NEWMAT::Matrix& rot);
+    void get_source_data() override;
     //---Resampling---//
-    void resampler_worker_function(int, int, const std::vector<bool>&);
-    std::map<int,float> resample_onto_template(int, int, const newresampler::Point&, const std::vector<int>&);
+    //void resampler_worker_function(int, int, const std::vector<bool>&);
+    //std::map<int,float> resample_onto_template(int, int, const newresampler::Point&, const std::vector<int>&);
 
 private:
     std::vector<newresampler::Mesh> _DATAMESHES; // TARGET MESH

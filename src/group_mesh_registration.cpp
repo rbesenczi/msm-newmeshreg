@@ -99,7 +99,7 @@ void Group_Mesh_registration::run_discrete_opt(std::vector<newresampler::Mesh>& 
         model->applyLabeling();
         for(int i = 0; i < meshes.size(); ++i)
         {
-            transformed_controlgrid = model->get_CPgrid();
+            transformed_controlgrid = model->get_CPgrid(i);
             newresampler::barycentric_mesh_interpolation(meshes[i], controlgrid[i], transformed_controlgrid);
             unfold(transformed_controlgrid);
             model->reset_CPgrid(transformed_controlgrid, i);

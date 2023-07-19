@@ -24,7 +24,7 @@ public:
     double corr(const std::map<int,float>& A, const std::map<int,float>& B);
 
     //---FOR DISCRETE---//
-    inline double get_sim_for_min(const std::vector<double>& input, const std::vector<double>& reference, const std::vector<double>& weights) {
+    inline double get_sim_for_min(const std::vector<double>& input, const std::vector<double>& reference, const std::vector<double>& weights = std::vector<double>()) {
         return 1 - ( 1 + corr(input,reference, weights)) / 2;
     }
 private:

@@ -24,7 +24,7 @@ void DiscreteGroupModel::estimate_pairs() {
                 {
                     int node_ids[2] = { n * control_grid_size + i,between_subject_pairs[n][n2][i] };
                     std::sort(std::begin(node_ids), std::end(node_ids));
-                    pairs[2 * pair] = node_ids[0];
+                    pairs[2 * pair    ] = node_ids[0];
                     pairs[2 * pair + 1] = node_ids[1];
                     pair++;
                 }
