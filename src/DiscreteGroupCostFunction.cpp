@@ -12,6 +12,15 @@ void DiscreteGroupCostFunction::set_parameters(myparam& p) {
     it=p.find("shearmodulus");_mu=boost::get<float>(it->second);
     it=p.find("bulkmodulus");_kappa=boost::get<float>(it->second);
     it=p.find("sigma_in");_sigma=boost::get<float>(it->second);
+    it=p.find("numthreads"); _threads=boost::get<int>(it->second);
+}
+
+void DiscreteGroupCostFunction::initialize(int numNodes, int numLabels, int numPairs, int numTriplets) {
+    DiscreteCostFunction::initialize(numNodes, numLabels, numPairs, numTriplets);
+    resample_to_template();
+    get_spacings();
+    _sourceinrange.clear();
+    _sourceinrange.resize(VERTICES_PER_SUBJ * num_subjects);
 }
 
 void DiscreteGroupCostFunction::get_spacings() {
@@ -35,48 +44,6 @@ void DiscreteGroupCostFunction::get_spacings() {
     }
 }
 
-void DiscreteGroupCostFunction::initialize(int numNodes, int numLabels, int numPairs, int numTriplets) {
-    DiscreteCostFunction::initialize(numNodes, numLabels, numPairs, numTriplets);
-    define_template_patches();
-    resample_to_template();
-    get_spacings();
-    resample_patches();
-}
-/*
-void DiscreteGroupCostFunction::define_template_patches() {
-
-    std::vector<std::vector<int>> TOTALCELLS(m_num_nodes,std::vector<int>());
-    std::vector<std::vector<int>> TEMPLATE_CELLS;
-    TEMPLATEPTS.clear();
-
-    for (int n = 0; n < m_num_nodes; n++)
-    {
-        int mesh_ID = std::floor(n / VERTICES_PER_SUBJ);
-        int ind = n - mesh_ID * VERTICES_PER_SUBJ;
-        newresampler::Point p = _CONTROLMESHES[mesh_ID].get_coord(ind);
-        TEMPLATE_CELLS.push_back(_targetrel->return_cell_group(p,1.75*asin(MVD_LR/RAD)));
-        TEMPLATEPTS.emplace_back(std::vector<int>());
-    }
-
-    // make patch constant across all node pairs
-    for (int pair = 0; pair < m_num_pairs; pair++)
-        for (int i = 0; i < 2; i++)
-            for (int j = 0; j < TEMPLATE_CELLS[_pairs[2 * pair + i]].size(); j++)
-                TOTALCELLS[_pairs[2 * pair + i]].push_back(TEMPLATE_CELLS[_pairs[2 * pair + i]][j]);
-
-    for (int n = 0; n < m_num_nodes; n++)
-    {
-        std::sort(TOTALCELLS[n].begin(),TOTALCELLS[n].end());
-        TOTALCELLS[n].erase( unique(TOTALCELLS[n].begin(),TOTALCELLS[n].end()),TOTALCELLS[n].end());
-
-        for(int i = 0; i < TOTALCELLS[n].size(); i++)
-        {
-            std::vector<int> PTS = _targetrel->get_cell_members(TOTALCELLS[n][i]);
-            TEMPLATEPTS[n].insert(TEMPLATEPTS[n].end(),PTS.begin(),PTS.end());
-        }
-    }
-}
-*/
 void DiscreteGroupCostFunction::resample_to_template() {
 
     RESAMPLEDDATA.clear();
@@ -86,7 +53,6 @@ void DiscreteGroupCostFunction::resample_to_template() {
     {
         _DATAMESHES[n].set_pvalues(FEAT->get_data_matrix(n));
         RESAMPLEDDATA[n] = newresampler::metric_resample(_DATAMESHES[n], _TEMPLATE).get_pvalues();
-        //R.resampledata(_DATAMESHES[n],_TEMPLATE,RESAMPLEDDATA[n],0.0,_targetrel);
     }
 }
 
@@ -112,9 +78,17 @@ double DiscreteGroupCostFunction::computeTripletCost(int triplet, int labelA, in
     return _reglambda * MISCMATHS::pow(calculate_triangular_strain(TRI_ORIG,TRI,_mu,_kappa),_rexp);
 }
 
+void DiscreteGroupCostFunction::get_source_data() {
+    for (int subject = 0; subject < num_subjects; ++subject)
+        for (int k = 0; k < _CONTROLMESHES[subject].nvertices(); k++)
+            for (int i = 0; i < _DATAMESHES[subject].nvertices(); i++)
+                if (((2 * RAD * asin((_CONTROLMESHES[subject].get_coord(k)-_DATAMESHES[subject].get_coord(i)).norm() / (2*RAD)))
+                            < _controlptrange * SPACINGS[subject](k+1)))
+                    _sourceinrange[subject*VERTICES_PER_SUBJ+k].push_back(i);
+}
+
 double DiscreteGroupCostFunction::computePairwiseCost(int pair, int labelA, int labelB) {
 
-    //TODO check this, but the idea is this
     int nodeA = _pairs[2*pair];
     int nodeB = _pairs[2*pair+1];
 
@@ -131,25 +105,17 @@ double DiscreteGroupCostFunction::computePairwiseCost(int pair, int labelA, int 
                                 get_patch_data(nodeB, rotB));
 }
 
-void DiscreteGroupCostFunction::get_source_data() {
-    //TODO get sourceinrange for nodes (all nodes, all meshes?)
-    _sourceinrange.resize(m_num_nodes);
-    for (int k = 0; k < _CPgrid.nvertices(); k++)
-        for (int i = 0; i < _SOURCE.nvertices(); i++)
-            if (within_controlpt_range(k, i))
-                _sourceinrange[k].push_back(i);
-}
-
 std::vector<double> DiscreteGroupCostFunction::get_patch_data(int node, const NEWMAT::Matrix& rot) {
 
-    //TODO
     std::vector<double> data(_sourceinrange[node].size(), 0.0);
+    int subject = std::floor((double)node/VERTICES_PER_SUBJ);
 
+    #pragma omp parallel for num_threads(_threads)
     for(unsigned int i = 0; i < _sourceinrange[node].size(); i++)
     {
-        newresampler::Point tmp = rot * _SOURCE.get_coord(_sourceinrange[node][i]);
+        newresampler::Point tmp = rot * _DATAMESHES[subject].get_coord(_sourceinrange[node][i]);
 
-        newresampler::Triangle closest_triangle = targettree->get_closest_triangle(tmp);
+        newresampler::Triangle closest_triangle = datameshtrees[subject]->get_closest_triangle(tmp);
 
         newresampler::Point v0 = closest_triangle.get_vertex_coord(0),
                             v1 = closest_triangle.get_vertex_coord(1),
@@ -159,123 +125,12 @@ std::vector<double> DiscreteGroupCostFunction::get_patch_data(int node, const NE
                             n2 = closest_triangle.get_vertex_no(2);
 
         data[i] = newresampler::barycentric_weight(v0, v1, v2, tmp,
-                                                    FEAT->get_ref_val(1, n0+1),
-                                                    FEAT->get_ref_val(1, n1+1),
-                                                    FEAT->get_ref_val(1, n2+1));
+                                                    FEAT->get_data_val(1, n0+1, subject),
+                                                    FEAT->get_data_val(1, n1+1, subject),
+                                                    FEAT->get_data_val(1, n2+1, subject));
     }
 
     return data;
 }
-/*
-void DiscreteGroupCostFunction::resample_patches() {
 
-    std::vector<bool> withinCPrange(m_num_nodes*_labels.size(),false);
-    PATCHDATA.clear();
-    PATCHDATA.resize(m_num_nodes*_labels.size(), std::map<int,float>());
-
-    for (int n = 0; n < m_num_nodes; n++)
-    {
-        int mesh_ID = floor(n/VERTICES_PER_SUBJ);
-        int node = n - mesh_ID * VERTICES_PER_SUBJ;
-        for (int lab = 0; lab < _labels.size(); lab++)
-            if ((_labels[lab] - _labels[0]).norm() <= 0.5 * SPACINGS[mesh_ID](node + 1))
-                withinCPrange[lab + n * _labels.size()] = true;
-
-    }
-    resampler_worker_function(0,m_num_nodes*_labels.size(),withinCPrange);
-}
-
-void DiscreteGroupCostFunction::resampler_worker_function(int begin, int end, const std::vector<bool>& INrange) {
-
-    for (int n = begin; n < end; n++)
-    {
-        int num = floor(n/_labels.size());
-        int mesh_ID = floor(num/VERTICES_PER_SUBJ);
-        int node = num - mesh_ID * VERTICES_PER_SUBJ;
-        int labnum = n - num * _labels.size();
-
-        if (INrange[labnum + num * _labels.size()])
-            PATCHDATA[labnum + num * _labels.size()] = resample_onto_template(node, mesh_ID, (*ROTATIONS)[num] * _labels[labnum], TEMPLATEPTS[num]);
-    }
-}
-
-std::map<int,float> DiscreteGroupCostFunction::resample_onto_template(int node, int ID, const newresampler::Point& newCP,
-                                                                      const std::vector<int>& PTS) {
-    std::map<int,float> sampledata;
-    std::map<int,float> weights;
-
-    for(const int& i : PTS)
-    {
-        sampledata[i] = 0.0;
-        weights[i] = 0.0;
-    }
-
-    for (auto j = _CONTROLMESHES[ID].tIDbegin(node); j != _CONTROLMESHES[ID].tIDend(node); j++)
-    {
-        newresampler::Point newCP0,newCP1,newCP2;
-        newresampler::Triangle tri = _CONTROLMESHES[ID].get_triangle(*j);
-        newresampler::Point CP0 = tri.get_vertex_coord(0);
-        newresampler::Point CP1 = tri.get_vertex_coord(1);
-        newresampler::Point CP2 = tri.get_vertex_coord(2);
-        int id0 = tri.get_vertex_no(0);
-        int id1 = tri.get_vertex_no(1);
-        int id2 = tri.get_vertex_no(2);
-
-        if(id0==node)
-        {
-            newCP0 = newCP;
-            newCP1 = CP1;
-            newCP2 = CP2;
-        }
-        else if(id1==node)
-        {
-            newCP0 = CP0;
-            newCP1 = newCP;
-            newCP2 = CP2;
-        }
-        else if(id2==node)
-        {
-            newCP0 = CP0;
-            newCP1 = CP1;
-            newCP2 = newCP;
-        }
-        else
-        {
-            std::cout << node << " triangle node not found " << " id0" << id0 << " " << id1 << " " << id2 << std::endl;
-            exit(1);
-        }
-
-        for(int i = 1; i <= _sourcerel.Nrows(*j+1); i++)
-        {
-            int sourceind = _sourcerel(i,*j+1);
-            // move source using barycentric interpolation
-            newresampler::Point SP = _DATAMESHES[ID].get_coord(sourceind-1);
-            newresampler::project_point(CP0, CP1, CP2,SP);
-            newresampler::Point tmp = barycentric(CP0,CP1,CP2,SP,newCP0,newCP1,newCP2);
-            tmp.normalize(); //ASSUMING SPHERE"S ORIGIN IS 0,0,0 (which  we can project from the face to the surface of the sphere this way
-            tmp = tmp * RAD;
-
-            // resample onto template using gaussian
-            std::vector<std::pair<float,int>> NEIGHBOURS = _targetrel->update_RELATIONS_for_ind(tmp);
-            for (const auto& s : NEIGHBOURS)
-            {
-                double dist = (tmp - _TEMPLATE.get_coord(s.second)).norm();
-                double g_weight = exp(-(dist*dist)/(2*_sigma*_sigma));
-                sampledata[s.second] += g_weight * FEAT->get_data_val(1,sourceind,ID);
-                weights[s.second] += g_weight;
-            }
-        }
-    }
-
-    for(int i : PTS)
-    {
-        if(weights[i]==0.0)
-            sampledata[i]=RESAMPLEDDATA[ID](1,i+1);
-        else
-            sampledata[i] /= weights[i];
-    }
-
-    return sampledata;
-}
-*/
 } //namespace newmeshreg

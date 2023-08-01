@@ -160,7 +160,7 @@ public:
 
                     std::vector<PairData> pair_data(energy->getNumPairs());
 
-                    #pragma omp parallel for num_threads(numthreads)
+                    //#pragma omp parallel for num_threads(numthreads)
                     for(int pair = 0; pair < energy->getNumPairs(); ++pair)
                     {
                         const int nodeA = pairs[pair*2];

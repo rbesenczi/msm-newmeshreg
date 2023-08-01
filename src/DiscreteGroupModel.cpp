@@ -51,50 +51,21 @@ void DiscreteGroupModel::estimate_triplets() {
 
 void DiscreteGroupModel::get_between_subject_pairs() {
 
-    //TODO need to work on m_TEMPLATE_LR_ALL_RELATIONS...
-
-    double ang = 2 * asin(MVD / RAD);
     between_subject_pairs.clear();
     between_subject_pairs.resize(m_num_subjects, std::vector<std::vector<int>>(m_num_subjects,std::vector<int> (control_grid_size,-1)));
 
-    // create one giant mesh for all subject control grids
-    std::vector<std::shared_ptr<newresampler::Mpoint>> ALLPOINTS = m_controlmeshes[0].get_points();
-    for (int n = 1; n < m_num_subjects; n++)
-    {
-        std::vector<std::shared_ptr<newresampler::Mpoint>> tmppoints = m_controlmeshes[n].get_points();
-        ALLPOINTS.insert(ALLPOINTS.end(),tmppoints.begin(),tmppoints.end());
-    }
+    std::vector<std::shared_ptr<newresampler::Octree>> cp_grid_trees(m_num_subjects);
 
-    m_TEMPLATE_LR_ALL_RELATIONS = std::shared_ptr<RELATIONS>(new RELATIONS(m_template_LR, ALLPOINTS, ang));
+    for (int i = 0; i < m_num_subjects; ++i)
+        cp_grid_trees[i] = std::make_shared<newresampler::Octree>(m_controlmeshes[i]);
 
-    // for all subjects and all vertices find the closest between mesh neighbours
-    for(int n = 0; n < m_num_subjects; n++)
-    {
-        double angtmp = ang;
-        int i = 1;
-        while (i <= control_grid_size)
-        {
-            int found = 0;
-            m_TEMPLATE_LR_ALL_RELATIONS->update_RELATIONS_for_ind(i, m_controlmeshes[n], angtmp);
-            for (int r = 1; r <= m_TEMPLATE_LR_ALL_RELATIONS->Nrows(i); r++)
-            {
-                int ind = (*m_TEMPLATE_LR_ALL_RELATIONS)(r,i)-1;
-                int mesh_ID = floor(ind / control_grid_size);
-                if(mesh_ID != n && between_subject_pairs[n][mesh_ID][i-1] == -1)
-                {
-                    between_subject_pairs[n][mesh_ID][i-1] = ind;
-                    found++;
-                    if(found == m_num_subjects - 1) break;
-                }
-            }
-            if (found != m_num_subjects - 1) {
-                angtmp = 2 * ang; // check that neighbours have been found between all other meshes
-                break;
-            }
-            else
-                i++;
+    for (int n = 0; n < m_num_subjects; ++n)
+        for (int i = 0; i < control_grid_size; ++i) {
+            newresampler::Point tmp = m_controlmeshes[n].get_coord(i);
+            for (int subject = 0; subject < m_num_subjects; ++subject)
+                if (n != subject)
+                    between_subject_pairs[n][subject][i] = cp_grid_trees[subject]->get_closest_vertex_ID(tmp) * subject;
         }
-    }
 }
 
 void DiscreteGroupModel::get_rotations(std::vector<NEWMAT::Matrix>& ROT) {
@@ -114,6 +85,7 @@ void DiscreteGroupModel::Initialize(const newresampler::Mesh& controlgrid) {
     m_controlmeshes.clear();
     m_controlmeshes.resize(m_num_subjects, controlgrid);
     m_template_LR = controlgrid;
+    datameshtrees.resize(m_num_subjects);
 
     if(m_debug)
     {
@@ -121,32 +93,20 @@ void DiscreteGroupModel::Initialize(const newresampler::Mesh& controlgrid) {
         m_template_LR.save("TEMPLATE_res" + std::to_string(m_CPres) + ".surf.gii");
     }
 
-    /*
-    for(int n = 0; n < m_num_subjects; n++)
-        m_controlmeshes.push_back(controlgrid);
-    */
-    //---INITIALIZE REGULARISATION TRIPLETS---//
     initialize_pairs();
     estimate_triplets();
 
-    //---CALCULATE FIXED GRID SPACINGS---//
     MVD = controlgrid.calculate_MeanVD();
-    m_maxs_dist = 0.4 * controlgrid.calculate_MaxVD();
+    m_maxs_dist = 0.5 * controlgrid.calculate_MaxVD();
 
-    //---INITIALIAZE LABEL GRID---//
     initLabeling();
     Initialize_sampling_grid();
 
-    //---INITIALIZE NEIGHBOURHOODS---//
-    //m_cp_neighbourhood=std::shared_ptr<RELATIONS>(new RELATIONS(m_DATAMESHES[0], controlgrid, 2 * asin(MVD / RAD)));
-    //m_cp_neighbourhood->update_RELATIONS(m_DATAMESHES[0]);
-    // as source mesh moves with control grid the relationships are constant for all meshes
-    //m_inputrel = std::shared_ptr<RELATIONS>(new RELATIONS(m_DATAMESHES[0],m_TEMPLATE,2*asin(MVD/RAD)));
-    //m_inputtree = std::make_shared<newresampler::Octree>(m_template);
-    //costfct->set_relations(m_cp_neighbourhood,m_inputrel);
-    //costfct->set_octrees(m_inputtree);
+    for(int subject = 0; subject < m_num_subjects; ++subject)
+        datameshtrees[subject] = std::make_shared<newresampler::Octree>(m_datameshes[subject]);
 
     costfct->set_meshes(m_template, m_datameshes[0], controlgrid, m_datameshes.size());
+    costfct->set_trees(datameshtrees);
 
     m_iter = 1;
 }
@@ -163,7 +123,6 @@ void DiscreteGroupModel::setupCostFunction() {
 
     //---GET BETWEEN MESH GROUPINGS---//
     get_between_subject_pairs();
-
     estimate_pairs();
 
     //---GET LABEL SPACE---//
@@ -177,12 +136,13 @@ void DiscreteGroupModel::setupCostFunction() {
 
     //---INIT---//
     if(m_verbosity)
-        std::cout << " initialize cost function 2" << m_iter << " m_num_triplets " << m_num_triplets << std::endl;
+        std::cout << " initialize cost function " << m_iter << " m_num_triplets " << m_num_triplets << std::endl;
 
     costfct->setPairs(pairs);
     costfct->setTriplets(triplets);
 
     costfct->initialize(m_num_nodes, m_num_labels, m_num_pairs, m_num_triplets);
+    costfct->get_source_data();
 
     if(m_verbosity)
         std::cout << " numpoints " << m_num_nodes << " m_num_labels " << m_num_labels << " m_num_pairs " << m_num_pairs << std::endl;

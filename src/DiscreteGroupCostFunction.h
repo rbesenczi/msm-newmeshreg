@@ -8,7 +8,6 @@ namespace newmeshreg {
 class DiscreteGroupCostFunction : public NonLinearSRegDiscreteCostFunction {
 
 public:
-    DiscreteGroupCostFunction() = default;
     void set_parameters(myparam& p) override;
     void set_meshes(const newresampler::Mesh& target, const newresampler::Mesh& source, const newresampler::Mesh& GRID, int num = 1) {
         _TEMPLATE = target;
@@ -19,26 +18,12 @@ public:
         MVD_LR = GRID.calculate_MeanVD();
         _DATAMESHES.resize(num, source);
         _CONTROLMESHES.resize(num,GRID);
-        /*
-        for(int i = 0; i < num; ++i) {
-            _DATAMESHES.push_back(source);
-            _CONTROLMESHES.push_back(GRID);
-        }
-        */
     }
-/*
-    void set_relations(const boost::shared_ptr<RELATIONS>& CONTROL, const boost::shared_ptr<RELATIONS>& TARG){
-        _controlrel = CONTROL;
-        _targetrel = TARG;
-        _sourcerel = _controlrel->invert_relationsTR( _CONTROLMESHES[0],_DATAMESHES[0]);
-    }
-*/
     //---INITIALISATION---//
-    void initialize(int numNodes, int numLabels, int numPairs, int numTriplets) override; // quartets not used yet so no code for them below
-    void define_template_patches();
+    void initialize(int numNodes, int numLabels, int numPairs, int numTriplets) override;
     void resample_to_template();
     void get_spacings();
-    void resample_patches();
+    void set_trees(const std::vector<std::shared_ptr<newresampler::Octree>>& trees) override { datameshtrees = trees; }
 
     //---Updates---//
     void reset_source(const newresampler::Mesh& source, int num = 0) override { _DATAMESHES[num] = source; }
@@ -49,21 +34,16 @@ public:
     double computePairwiseCost(int pair, int labelA, int labelB) override;
     std::vector<double> get_patch_data(int, const NEWMAT::Matrix& rot);
     void get_source_data() override;
-    //---Resampling---//
-    //void resampler_worker_function(int, int, const std::vector<bool>&);
-    //std::map<int,float> resample_onto_template(int, int, const newresampler::Point&, const std::vector<int>&);
 
 private:
     std::vector<newresampler::Mesh> _DATAMESHES; // TARGET MESH
     std::vector<newresampler::Mesh> _CONTROLMESHES; // TARGET MESH
     newresampler::Mesh _TEMPLATE;
+    std::vector<std::shared_ptr<newresampler::Octree>> datameshtrees;
 
-    //std::vector<std::vector<int>> TEMPLATEPTS;
     std::vector<NEWMAT::ColumnVector> SPACINGS;
 
-    //---DATA---//
     std::vector<NEWMAT::Matrix> RESAMPLEDDATA;
-    //std::vector<std::map<int,float>> PATCHDATA;
 
     double MVD_LR = 0.0;
     float _sigma = 0.0;

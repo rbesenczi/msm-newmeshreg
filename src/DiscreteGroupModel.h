@@ -17,6 +17,7 @@ class DiscreteGroupModel : public NonLinearSRegDiscreteModel {
 
     std::vector<std::vector<std::vector<int>>> between_subject_pairs;
     std::vector<int> subjects;
+    std::vector<std::shared_ptr<newresampler::Octree>> datameshtrees;
 
     int m_num_subjects = 0;
     int control_grid_size = 0;
@@ -25,9 +26,7 @@ public:
     DiscreteGroupModel() = default;
     explicit DiscreteGroupModel(myparam& p) {
         set_parameters(p);
-        costfct = std::shared_ptr<NonLinearSRegDiscreteCostFunction>(new DiscreteGroupCostFunction());
-        //m_inputrel = std::shared_ptr<RELATIONS>(new RELATIONS());
-        //m_cp_neighbourhood = std::shared_ptr<RELATIONS>(new RELATIONS());
+        costfct = std::make_shared<DiscreteGroupCostFunction>();
         costfct->set_parameters(p);
     }
 
@@ -36,10 +35,6 @@ public:
         m_datameshes.clear();
         m_datameshes.resize(num, source);
         m_num_subjects = num;
-        /*
-        for(int i = 0; i < num; ++i)
-            m_datameshes.push_back(source);
-        */
     }
 
     void reset_meshspace(const newresampler::Mesh& source, int num = 0) override {

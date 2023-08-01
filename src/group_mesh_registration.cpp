@@ -27,10 +27,9 @@ void Group_Mesh_registration::initialize_level(int current_lvl) {
     newresampler::true_rescale(control, RAD);
 
     model = std::make_shared<DiscreteGroupModel>(PARAMETERS);
-
     if(_debug) model->set_debug();
     model->set_featurespace(FEAT);
-    model->set_meshspace(SPH_orig, SPH_orig, MESHES.size());
+    model->set_meshspace(SPH_orig, SPH_orig, (int)MESHES.size());
     model->Initialize(control);
 }
 
@@ -69,8 +68,7 @@ void Group_Mesh_registration::run_discrete_opt(std::vector<newresampler::Mesh>& 
     newresampler::Mesh transformed_controlgrid, targetmesh = model->get_TARGET();
     std::vector<newresampler::Mesh> controlgrid;
 
-    auto it = PARAMETERS.find("iters");
-    const int _itersforlevel = boost::get<int>(it->second);
+    const int _itersforlevel = boost::get<int>(PARAMETERS.find("iters")->second);
 
     while(iter <= _itersforlevel)
     {
@@ -115,9 +113,9 @@ void Group_Mesh_registration::save_transformed_data(const std::string &filename)
     {
         std::shared_ptr<MISCMATHS::BFMatrix> data;
         set_data(DATAlist[i], data, MESHES[i]);
-        newresampler::metric_resample(MESHES[i], templ, _numthreads);
-        templ.set_pvalues(data->AsMatrix());
-        templ.save(filename + "transformed_and_reprojected-" + std::to_string(i) + _dataformat);
+        newresampler::Mesh temp = newresampler::metric_resample(MESHES[i], templ, _numthreads);
+        //templ.set_pvalues(data->AsMatrix());
+        temp.save(filename + "transformed_and_reprojected-" + std::to_string(i) + _dataformat);
     }
 }
 
