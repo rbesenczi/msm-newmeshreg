@@ -84,17 +84,17 @@ void Group_Mesh_registration::run_discrete_opt(std::vector<newresampler::Mesh>& 
 #else
         throw MeshregException("Groupwise mode is only supported in the HOCR version of MSM.");
 #endif
-        if(iter > 1 && ((iter - 1) % 2 == 0) && (energy - newenergy < 0.001) && _discreteOPT != "MCMC")
+        if(iter > 1 && energy-newenergy < 0.001)
         {
-            if(_verbose)
-            {
-                std::cout << iter << " level has converged.\n";
-                std::cout <<  "newenergy " << newenergy <<  "\tenergy " << energy
-                          <<  "\tenergy-newenergy " <<  energy-newenergy << std::endl;
-            }
+            if (_verbose)
+                std::cout << iter << " level has converged.\n"
+                          << "newenergy " << newenergy << "\tenergy " << energy
+                          << "\tenergy-newenergy " << energy - newenergy << std::endl;
             break;
         }
+
         model->applyLabeling();
+
         for(int i = 0; i < meshes.size(); ++i)
         {
             transformed_controlgrid = model->get_CPgrid(i);
