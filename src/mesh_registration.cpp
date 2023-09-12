@@ -350,7 +350,7 @@ void Mesh_registration::run_discrete_opt(newresampler::Mesh& source) {
         if(_discreteOPT == "MCMC")
         {
             if(!_tricliquelikeihood) model->computeUnaryCosts();
-            newenergy = MCMC::optimise(model, _verbose, _mciters);
+            newenergy = MCMC::optimise(model, _verbose, _mciters[level-1]);
         }
         else if(_discreteOPT == "FastPD")
         {
@@ -560,10 +560,10 @@ void Mesh_registration::parse_reg_options(const std::string &parameters)
     Utilities::Option<float> gradsampling(std::string("--gradsampling"), 0.5,
                                std::string("Determines the finite distance spacing for the affine gradient calculation (default 0.5)"),
                                false,Utilities::requires_argument);
-    Utilities::Option<int> mciters(std::string("--mciters"), 1000,
+    Utilities::Option<std::vector<int>> mciters(std::string("--mciters"), intdefault,
                                    std::string("number of iterations for Monte Carlo optimisation (default == 1000)"),
                                    false,Utilities::requires_argument);
-    Utilities::Option<float> labeldist(std::string("--labeldist"), 0.5,
+    Utilities::Option<std::vector<float>> labeldist(std::string("--labeldist"), floatdefault,
                                    std::string("distance multiplier for max label distance (default == 0.5)"),
                                    false,Utilities::requires_argument);
     Utilities::Option<int> threads(std::string("--numthreads"), 1,
@@ -763,8 +763,10 @@ void Mesh_registration::parse_reg_options(const std::string &parameters)
     _affinestepsize=affinestepsize.value();
     _affinegradsampling=gradsampling.value();
     _numthreads=threads.value();
-    _mciters=mciters.value();
-    _labeldist=labeldist.value();
+    if(mciters.set()) _mciters=mciters.value();
+    else _mciters.resize(cost.size(), 50000);
+    if(labeldist.set()) _labeldist=labeldist.value();
+    else _labeldist.resize(cost.size(), 0.5);
     _rescale_labels=rescale_labels.value();
 
     if(_verbose)
@@ -791,11 +793,11 @@ void Mesh_registration::parse_reg_options(const std::string &parameters)
         if(intensitynormalizewcut.set()) std::cout << "\nIntensity normalise with cut set.";
         if(rescale_labels.set()) std::cout << "\nRescale labels set.";
         std::cout << "\nDiscrete implementation: " << _discreteOPT;
-        if(_discreteOPT == "MCMC") std::cout << "\nMonte Carlo iterations: " << _mciters;
+        if(_discreteOPT == "MCMC") std::cout << "\nMonte Carlo iterations: "; for(const auto& e : _mciters) std::cout << e << ' ';
         std::cout << "\nRegulariser: " <<  _regmode;
         if(_regmode == 3 || _regmode == 5) std::cout << "\nShearmod: " << _shearmod << "; Bulkmod: " << _bulkmod << "; k_exponent: " << _k_exp;
         std::cout << "\nRegulariser exponent: " <<  _regexp;
-        std::cout << "\nMultiplier for max label dist: " <<  _labeldist;
+        std::cout << "\nMultiplier for max label dist: "; for(const auto& e : _labeldist) std::cout << e << ' ';
         std::cout << "\nNumber of execution threads: " << _numthreads << "\n\n";
 
         std::cout << std::endl;
@@ -856,7 +858,7 @@ void Mesh_registration::fix_parameters_for_level(int i) {
     PARAMETERS.insert(parameterPair("gradsampling", _affinegradsampling));
     PARAMETERS.insert(parameterPair("numthreads", _numthreads));
     PARAMETERS.insert(parameterPair("kexponent", _k_exp));
-    PARAMETERS.insert(parameterPair("labeldist", _labeldist));
+    PARAMETERS.insert(parameterPair("labeldist", _labeldist[i]));
 }
 
 void Mesh_registration::check() {
