@@ -793,7 +793,7 @@ void Mesh_registration::parse_reg_options(const std::string &parameters)
         if(intensitynormalizewcut.set()) std::cout << "\nIntensity normalise with cut set.";
         if(rescale_labels.set()) std::cout << "\nRescale labels set.";
         std::cout << "\nDiscrete implementation: " << _discreteOPT;
-        if(_discreteOPT == "MCMC") std::cout << "\nMonte Carlo iterations: "; for(const auto& e : _mciters) std::cout << e << ' ';
+        if(_discreteOPT == "MCMC") { std::cout << "\nMonte Carlo iterations: "; for(const auto& e : _mciters) std::cout << e << ' '; }
         std::cout << "\nRegulariser: " <<  _regmode;
         if(_regmode == 3 || _regmode == 5) std::cout << "\nShearmod: " << _shearmod << "; Bulkmod: " << _bulkmod << "; k_exponent: " << _k_exp;
         std::cout << "\nRegulariser exponent: " <<  _regexp;
