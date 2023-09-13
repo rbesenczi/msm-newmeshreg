@@ -331,7 +331,14 @@ newresampler::Triangle NonLinearSRegDiscreteCostFunction::deform_anatomy(int tri
             for (const auto& it: _ANATbaryweights[tindex])
                 newPt += vertex[it.first] * it.second;
 
-            newresampler::Triangle closest_triangle = anattree->get_closest_triangle(newPt);
+            newresampler::Triangle closest_triangle;
+            try {
+                closest_triangle = anattree->get_closest_triangle(newPt);
+            } catch (newresampler::MeshException& e) {
+                std::cout << "Warning! Cannot find closest triangle on anatomical mesh. This is a known bug in the Octree search algorithm in anatomical MSM."
+                      << "\n\tUsing default Triangle with ID==0." << std::endl;
+                closest_triangle.set(newresampler::Point{0,0,0},newresampler::Point{0,0,0},newresampler::Point{0,0,0},0);
+            }
 
             newresampler::Point v0 = closest_triangle.get_vertex_coord(0),
                                 v1 = closest_triangle.get_vertex_coord(1),
