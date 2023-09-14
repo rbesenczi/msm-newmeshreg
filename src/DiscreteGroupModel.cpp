@@ -7,8 +7,8 @@ void DiscreteGroupModel::initialize_pairs() {
     m_num_pairs = 0;
     for (int n = 0; n < m_num_subjects; n++)
         for (int i = 0; i < m_controlmeshes[n].nvertices(); i++)
-            for (int n2 = 0; n2 < m_num_subjects; n2++)
-                if (n2 > n)
+            for (int n2 = n + 1; n2 < m_num_subjects; n2++)
+                //if (n2 > n)
                     m_num_pairs++;
 }
 

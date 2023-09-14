@@ -25,7 +25,12 @@ public:
     }
 
     inline void set_data_list(const std::string& s) { DATAlist = read_ascii_list(s); }
-    inline void set_template(const std::string &M) {templ.load(M); recentre(templ);  true_rescale(templ,RAD); }
+
+    inline void set_template(const std::string &M) {
+        templ.load(M);
+        recentre(templ);
+        true_rescale(templ,RAD);
+    }
 
     void set_inputs(const std::string& s) {
         std::vector<std::string> meshlist = read_ascii_list(s);

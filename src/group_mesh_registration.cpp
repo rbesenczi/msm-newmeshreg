@@ -6,7 +6,7 @@ void Group_Mesh_registration::initialize_level(int current_lvl) {
 
     check();
     if(cost[current_lvl] == "RIGID" || cost[current_lvl] == "AFFINE")
-        throw MeshregException("AFFINE/RIGID registration is not supported in groupwise mode.");
+        throw MeshregException("AFFINE/RIGID registration is not supported in groupwise mode yet.");
 
     const std::vector<double> sigma(MESHES.size(), _sigma_in[current_lvl]);
 
@@ -19,7 +19,7 @@ void Group_Mesh_registration::initialize_level(int current_lvl) {
     FEAT->set_nthreads(_numthreads);
     SPH_orig = FEAT->initialize(_genesis[current_lvl], MESHES, _exclude);
     if(FEAT->get_dim() > 1)
-        throw MeshregException("Multivariate registration is not supported in groupwise mode.");
+        throw MeshregException("Multivariate registration is not supported in groupwise mode yet.");
     PARAMETERS.insert(parameterPair("multivariate", false));
 
     newresampler::Mesh control = newresampler::make_mesh_from_icosa(_gridres[current_lvl]);
@@ -114,9 +114,7 @@ void Group_Mesh_registration::save_transformed_data(const std::string &filename)
     {
         std::shared_ptr<MISCMATHS::BFMatrix> data;
         set_data(DATAlist[i], data, MESHES[i]);
-        newresampler::Mesh temp = newresampler::metric_resample(MESHES[i], templ, _numthreads);
-        //templ.set_pvalues(data->AsMatrix());
-        temp.save(filename + "transformed_and_reprojected-" + std::to_string(i) + _dataformat);
+        newresampler::metric_resample(MESHES[i], templ, _numthreads).save(filename + "transformed_and_reprojected-" + std::to_string(i) + _dataformat);
     }
 }
 
