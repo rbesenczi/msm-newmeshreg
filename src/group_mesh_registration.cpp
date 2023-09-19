@@ -84,7 +84,7 @@ void Group_Mesh_registration::run_discrete_opt(std::vector<newresampler::Mesh>& 
 #else
         throw MeshregException("Groupwise mode is only supported in the HOCR version of MSM.");
 #endif
-        if(iter > 1 && energy-newenergy < 0.001)
+        if(iter > 1 && iter % 2 != 0 && energy-newenergy < 0.001)
         {
             if (_verbose)
                 std::cout << iter << " level has converged.\n"

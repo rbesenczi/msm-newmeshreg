@@ -5,19 +5,16 @@ namespace newmeshreg {
 void DiscreteGroupCostFunction::set_parameters(myparam& p) {
     myparam::iterator it;
     it=p.find("lambda");_reglambda=boost::get<float>(it->second);
-    it=p.find("lambda_pairs");_lambdapairs=boost::get<float>(it->second);
-    it=p.find("set_lambda_pairs");_setpairs=boost::get<bool>(it->second);
     it=p.find("simmeasure");_simmeasure=boost::get<int>(it->second); sim.set_simval(_simmeasure);
-    it=p.find("verbosity");_verbosity=boost::get<bool>(it->second);
     it=p.find("shearmodulus");_mu=boost::get<float>(it->second);
     it=p.find("bulkmodulus");_kappa=boost::get<float>(it->second);
-    it=p.find("sigma_in");_sigma=boost::get<float>(it->second);
+    it=p.find("verbosity");_verbosity=boost::get<bool>(it->second);
     it=p.find("numthreads"); _threads=boost::get<int>(it->second);
 }
 
 void DiscreteGroupCostFunction::initialize(int numNodes, int numLabels, int numPairs, int numTriplets) {
     DiscreteCostFunction::initialize(numNodes, numLabels, numPairs, numTriplets);
-    resample_to_template();
+    //resample_to_template();
     get_spacings();
     _sourceinrange.clear();
     _sourceinrange.resize(VERTICES_PER_SUBJ * num_subjects);
@@ -25,11 +22,13 @@ void DiscreteGroupCostFunction::initialize(int numNodes, int numLabels, int numP
 
 void DiscreteGroupCostFunction::get_spacings() {
 
-    NEWMAT::ColumnVector vMAXmvd(_CONTROLMESHES[0].nvertices());
+    SPACINGS.resize(num_subjects);
     SPACINGS.clear();
 
+    #pragma omp parallel for num_threads(_threads)
     for(int n = 0; n < num_subjects; n++)
     {
+        NEWMAT::ColumnVector vMAXmvd(_CONTROLMESHES[0].nvertices());
         vMAXmvd = 0;
         for (int k = 0; k < _CONTROLMESHES[n].nvertices(); k++)
         {
@@ -40,19 +39,7 @@ void DiscreteGroupCostFunction::get_spacings() {
                 if(dist > vMAXmvd(k+1)) vMAXmvd(k+1) = dist;
             }
         }
-        SPACINGS.push_back(vMAXmvd);
-    }
-}
-
-void DiscreteGroupCostFunction::resample_to_template() {
-
-    RESAMPLEDDATA.clear();
-    RESAMPLEDDATA.resize(num_subjects);
-
-    for(int n = 0; n < num_subjects; n++)
-    {
-        _DATAMESHES[n].set_pvalues(FEAT->get_data_matrix(n));
-        RESAMPLEDDATA[n] = newresampler::metric_resample(_DATAMESHES[n], _TEMPLATE).get_pvalues();
+        SPACINGS[n] = vMAXmvd;
     }
 }
 
@@ -79,6 +66,7 @@ double DiscreteGroupCostFunction::computeTripletCost(int triplet, int labelA, in
 }
 
 void DiscreteGroupCostFunction::get_source_data() {
+    #pragma omp parallel for num_threads(_threads)
     for (int subject = 0; subject < num_subjects; ++subject)
         for (int k = 0; k < _CONTROLMESHES[subject].nvertices(); k++)
             for (int i = 0; i < _DATAMESHES[subject].nvertices(); i++)
@@ -110,7 +98,7 @@ std::vector<double> DiscreteGroupCostFunction::get_patch_data(int node, const NE
     std::vector<double> data(_sourceinrange[node].size(), 0.0);
     int subject = std::floor((double)node/VERTICES_PER_SUBJ);
 
-    #pragma omp parallel for num_threads(_threads)
+    //#pragma omp parallel for num_threads(_threads)
     for(unsigned int i = 0; i < _sourceinrange[node].size(); i++)
     {
         newresampler::Point tmp = rot * _DATAMESHES[subject].get_coord(_sourceinrange[node][i]);
