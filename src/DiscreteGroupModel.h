@@ -1,8 +1,6 @@
 #ifndef NEWMESHREG_DISCRETEGROUPMODEL_H
 #define NEWMESHREG_DISCRETEGROUPMODEL_H
 
-#include <memory>
-
 #include "DiscreteModel.h"
 #include "DiscreteGroupCostFunction.h"
 
@@ -16,7 +14,6 @@ class DiscreteGroupModel : public NonLinearSRegDiscreteModel {
     newresampler::Mesh m_template_LR;
 
     std::vector<std::vector<std::vector<int>>> between_subject_pairs;
-    std::vector<int> subjects;
     std::vector<std::shared_ptr<newresampler::Octree>> datameshtrees;
 
     int m_num_subjects = 0;

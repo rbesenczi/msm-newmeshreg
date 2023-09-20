@@ -120,12 +120,12 @@ class Fusion {
 public:
     static double optimize(const std::shared_ptr<DiscreteModel>& energy, bool verbose, int numthreads) {
 
-        const int *pairs    = energy->getPairs();
+        const int* pairs    = energy->getPairs();
         const int* triplets = energy->getTriplets();
 
         const int NUM_SWEEPS = 2;
 
-        int *labeling = energy->getLabeling();
+        int* labeling = energy->getLabeling();
         std::shared_ptr<DiscreteModelDummy> FPDMODEL = std::make_shared<DiscreteModelDummy>();
 
         double initEnergy = energy->evaluateTotalCostSum();
@@ -147,8 +147,8 @@ public:
                 #pragma omp parallel for num_threads(numthreads)
                 for(int node = 0; node < energy->getNumNodes(); ++node)
                 {
-                    unary_data[node].buffer[0] = energy->computeUnaryCost(node,labeling[node]);	//0
-                    unary_data[node].buffer[1] = energy->computeUnaryCost(node,label);				//1
+                    unary_data[node].buffer[0] = energy->computeUnaryCost(node,labeling[node]);
+                    unary_data[node].buffer[1] = energy->computeUnaryCost(node,label);
                     #pragma omp critical
                     sumlabeldiff += abs(label-labeling[node]);
                 }
@@ -160,16 +160,16 @@ public:
 
                     std::vector<PairData> pair_data(energy->getNumPairs());
 
-                    //#pragma omp parallel for num_threads(numthreads)
+                    #pragma omp parallel for num_threads(numthreads)
                     for(int pair = 0; pair < energy->getNumPairs(); ++pair)
                     {
                         const int nodeA = pairs[pair*2];
                         const int nodeB = pairs[pair*2+1];
 
-                        pair_data[pair].buffer[0] = energy->computePairwiseCost(pair,labeling[nodeA],labeling[nodeB]);    //00
-                        pair_data[pair].buffer[1] = energy->computePairwiseCost(pair,labeling[nodeA],label);          //01
-                        pair_data[pair].buffer[2] = energy->computePairwiseCost(pair,label,labeling[nodeB]);          //10
-                        pair_data[pair].buffer[3] = energy->computePairwiseCost(pair,label,label); //11
+                        pair_data[pair].buffer[0] = energy->computePairwiseCost(pair,labeling[nodeA],labeling[nodeB]);
+                        pair_data[pair].buffer[1] = energy->computePairwiseCost(pair,labeling[nodeA],label);
+                        pair_data[pair].buffer[2] = energy->computePairwiseCost(pair,label,labeling[nodeB]);
+                        pair_data[pair].buffer[3] = energy->computePairwiseCost(pair,label,label);
                     }
 
                     for(int pair = 0; pair < energy->getNumPairs(); ++pair)
@@ -224,16 +224,12 @@ public:
                     opt.getLabeling(Labels);
 
                     for(int node = 0; node < energy->getNumNodes(); ++node)
-                    {
                         if(labeling[node] != label)
-                        {
                             if(Labels[node] == 1)
                             {
                                 labeling[node] = label;
                                 nodesChanged++;
                             }
-                        }
-                    }
 
                     if(verbose)
                     {

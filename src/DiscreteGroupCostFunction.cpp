@@ -14,7 +14,6 @@ void DiscreteGroupCostFunction::set_parameters(myparam& p) {
 
 void DiscreteGroupCostFunction::initialize(int numNodes, int numLabels, int numPairs, int numTriplets) {
     DiscreteCostFunction::initialize(numNodes, numLabels, numPairs, numTriplets);
-    //resample_to_template();
     get_spacings();
     _sourceinrange.clear();
     _sourceinrange.resize(VERTICES_PER_SUBJ * num_subjects);
@@ -98,7 +97,6 @@ std::vector<double> DiscreteGroupCostFunction::get_patch_data(int node, const NE
     std::vector<double> data(_sourceinrange[node].size(), 0.0);
     int subject = std::floor((double)node/VERTICES_PER_SUBJ);
 
-    //#pragma omp parallel for num_threads(_threads)
     for(unsigned int i = 0; i < _sourceinrange[node].size(); i++)
     {
         newresampler::Point tmp = rot * _DATAMESHES[subject].get_coord(_sourceinrange[node][i]);

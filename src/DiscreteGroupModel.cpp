@@ -8,26 +8,23 @@ void DiscreteGroupModel::initialize_pairs() {
     for (int n = 0; n < m_num_subjects; n++)
         for (int i = 0; i < m_controlmeshes[n].nvertices(); i++)
             for (int n2 = n + 1; n2 < m_num_subjects; n2++)
-                //if (n2 > n)
                     m_num_pairs++;
 }
 
 void DiscreteGroupModel::estimate_pairs() {
 
     int pair = 0;
-    pairs = new int[m_num_pairs*2];
+    pairs = new int[m_num_pairs * 2];
 
     for (int n = 0; n < m_num_subjects; n++)
         for (int i = 0; i < m_controlmeshes[n].nvertices(); i++)
-            for (int n2 = 0; n2 < m_num_subjects; n2++)
-                if (n2 > n)
-                {
-                    int node_ids[2] = { n * control_grid_size + i,between_subject_pairs[n][n2][i] };
-                    std::sort(std::begin(node_ids), std::end(node_ids));
-                    pairs[2 * pair    ] = node_ids[0];
-                    pairs[2 * pair + 1] = node_ids[1];
-                    pair++;
-                }
+            for (int n2 = n + 1; n2 < m_num_subjects; n2++) {
+                int node_ids[2] = { n * control_grid_size + i,between_subject_pairs[n][n2][i] };
+                std::sort(std::begin(node_ids), std::end(node_ids));
+                pairs[2 * pair    ] = node_ids[0];
+                pairs[2 * pair + 1] = node_ids[1];
+                pair++;
+            }
 }
 
 void DiscreteGroupModel::estimate_triplets() {
@@ -64,7 +61,7 @@ void DiscreteGroupModel::get_between_subject_pairs() {
             newresampler::Point tmp = m_controlmeshes[n].get_coord(i);
             for (int subject = 0; subject < m_num_subjects; ++subject)
                 if (n != subject)
-                    between_subject_pairs[n][subject][i] = cp_grid_trees[subject]->get_closest_vertex_ID(tmp) * subject;
+                    between_subject_pairs[n][subject][i] = cp_grid_trees[subject]->get_closest_vertex_ID(tmp) + subject * control_grid_size;
         }
 }
 
