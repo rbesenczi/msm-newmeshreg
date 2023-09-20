@@ -21,8 +21,8 @@ void DiscreteGroupCostFunction::initialize(int numNodes, int numLabels, int numP
 
 void DiscreteGroupCostFunction::get_spacings() {
 
-    SPACINGS.resize(num_subjects);
     SPACINGS.clear();
+    SPACINGS.resize(num_subjects);
 
     #pragma omp parallel for num_threads(_threads)
     for(int n = 0; n < num_subjects; n++)
