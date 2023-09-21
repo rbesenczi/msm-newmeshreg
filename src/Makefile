@@ -3,7 +3,7 @@ include ${FSLCONFDIR}/default.mk
 PROJNAME    = NewMeshReg
 SOFILES     = libfsl-newmeshreg.so
 LIBS        = -lfsl-newresampler -lfsl-newimage -lfsl-miscmaths -lfsl-utils
-USRCXXFLAGS = -fopenmp -std=c++20
+USRCXXFLAGS = -fopenmp
 USRINCFLAGS += -DHAS_FPD -DHAS_HOCR -I../include/
 
 OBJS       = reg_tools.o featurespace.o similarities.o DiscreteCostFunction.o \

@@ -11,9 +11,7 @@ class DiscreteGroupModel : public NonLinearSRegDiscreteModel {
     std::vector<newresampler::Mesh> m_datameshes;
     std::vector<newresampler::Mesh> m_controlmeshes;
     newresampler::Mesh m_template;
-    newresampler::Mesh m_template_LR;
 
-    std::vector<std::vector<std::vector<int>>> between_subject_pairs;
     std::vector<std::shared_ptr<newresampler::Octree>> datameshtrees;
 
     int m_num_subjects = 0;
@@ -50,8 +48,8 @@ public:
     void applyLabeling(int* dlabels) override {
         for (int n = 0; n < m_num_subjects; n++)
             for (int i = 0; i < m_controlmeshes[n].nvertices(); i++)
-                m_controlmeshes[n].set_coord(i, m_ROT[i + n * m_controlmeshes[n].nvertices()] *
-                                                m_labels[dlabels[i + n * m_controlmeshes[n].nvertices()]]);
+                m_controlmeshes[n].set_coord(i, m_ROT[i + n * control_grid_size] *
+                                                m_labels[dlabels[i + n * control_grid_size]]);
     }
 
     newresampler::Mesh get_CPgrid(int num = 0) override { return m_controlmeshes[num]; }
@@ -63,8 +61,6 @@ public:
     void Initialize(const newresampler::Mesh& controlgrid) override;
     void get_rotations(std::vector<NEWMAT::Matrix>&) override;
     void setupCostFunction() override;
-
-    void get_between_subject_pairs();
 };
 
 } //namespace newmeshreg

@@ -173,12 +173,7 @@ public:
                     }
 
                     for(int pair = 0; pair < energy->getNumPairs(); ++pair)
-                    {
-                        const int nodeA = pairs[pair*2];
-                        const int nodeB = pairs[pair*2+1];
-                        int node_ids[2] = { nodeA, nodeB };
-                        pbf.AddPairwiseTerm(node_ids[0], node_ids[1], pair_data[pair].buffer[0], pair_data[pair].buffer[1], pair_data[pair].buffer[2], pair_data[pair].buffer[3]);
-                    }
+                        pbf.AddPairwiseTerm(pairs[pair*2], pairs[pair*2+1], pair_data[pair].buffer[0], pair_data[pair].buffer[1], pair_data[pair].buffer[2], pair_data[pair].buffer[3]);
 
                     std::vector<TripletData> triplet_data(energy->getNumTriplets());
 
@@ -219,7 +214,7 @@ public:
                     FPDMODEL->initialise();
                     int* Labels = FPDMODEL->getLabeling();
 
-                    FPD::FastPD opt(FPDMODEL, 100 );
+                    FPD::FastPD opt(FPDMODEL, 100);
                     double newEnergy = opt.run();
                     opt.getLabeling(Labels);
 

@@ -19,28 +19,31 @@ public:
     void run_discrete_opt(std::vector<newresampler::Mesh>&);
     void save_transformed_data(const std::string& filename) override;
 
-    inline void saveSPH_reg(const std::string& filename) const override {
-        for(int i = 0; i < ALL_SPH_REG.size(); ++i)
-            ALL_SPH_REG[i].save(filename + "sphere-" + std::to_string(i) + ".LR.reg" + _surfformat);
+    inline void set_inputs(const std::string& s) {
+        std::vector<std::string> meshlist = read_ascii_list(s);
+        MESHES.clear();
+        MESHES.resize(meshlist.size());
+        for (int i = 0; i < meshlist.size(); ++i)
+        {
+            if(_verbose) std::cout << "Mesh #" << i << " is " << meshlist[i] << std::endl;
+            newresampler::Mesh tmp;
+            tmp.load(meshlist[i]);
+            MESHES[i] = tmp;
+        }
     }
 
     inline void set_data_list(const std::string& s) { DATAlist = read_ascii_list(s); }
 
     inline void set_template(const std::string &M) {
+        if(_verbose) std::cout << "Template is " << M << std::endl;
         templ.load(M);
         recentre(templ);
         true_rescale(templ,RAD);
     }
 
-    void set_inputs(const std::string& s) {
-        std::vector<std::string> meshlist = read_ascii_list(s);
-        newresampler::Mesh tmp;
-        MESHES.clear();
-        for (int i = 0; i < meshlist.size(); i++) {
-            if (_verbose) std::cout << i << " " << meshlist[i] << std::endl;
-            tmp.load(meshlist[i]);
-            MESHES.push_back(tmp);
-        }
+    inline void saveSPH_reg(const std::string& filename) const override {
+        for(int i = 0; i < ALL_SPH_REG.size(); ++i)
+            ALL_SPH_REG[i].save(filename + "sphere-" + std::to_string(i) + ".LR.reg" + _surfformat);
     }
 };
 

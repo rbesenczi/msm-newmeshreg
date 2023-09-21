@@ -27,14 +27,14 @@ void DiscreteGroupCostFunction::get_spacings() {
     #pragma omp parallel for num_threads(_threads)
     for(int n = 0; n < num_subjects; n++)
     {
-        NEWMAT::ColumnVector vMAXmvd(_CONTROLMESHES[0].nvertices());
+        NEWMAT::ColumnVector vMAXmvd(VERTICES_PER_SUBJ);
         vMAXmvd = 0;
-        for (int k = 0; k < _CONTROLMESHES[n].nvertices(); k++)
+        for (int k = 0; k < VERTICES_PER_SUBJ; k++)
         {
             newresampler::Point CP = _CONTROLMESHES[n].get_coord(k);
             for (auto it = _CONTROLMESHES[n].nbegin(k); it != _CONTROLMESHES[n].nend(k); it++)
             {
-                double dist = 2 * RAD * asin((CP -_CONTROLMESHES[n].get_coord(*it)).norm() / (2*RAD));
+                double dist = 2*RAD * asin((CP -_CONTROLMESHES[n].get_coord(*it)).norm()/(2*RAD));
                 if(dist > vMAXmvd(k+1)) vMAXmvd(k+1) = dist;
             }
         }
@@ -44,7 +44,7 @@ void DiscreteGroupCostFunction::get_spacings() {
 
 double DiscreteGroupCostFunction::computeTripletCost(int triplet, int labelA, int labelB, int labelC) {
 
-    int meshID = floor(triplet/TRIPLETS_PER_SUBJ);
+    int meshID = std::floor(triplet/(double)TRIPLETS_PER_SUBJ);
     int m0 = _triplets[3*triplet]-meshID*VERTICES_PER_SUBJ;
     int m1 = _triplets[3*triplet+1]-meshID*VERTICES_PER_SUBJ;
     int m2 = _triplets[3*triplet+2]-meshID*VERTICES_PER_SUBJ;
@@ -52,14 +52,15 @@ double DiscreteGroupCostFunction::computeTripletCost(int triplet, int labelA, in
     newresampler::Triangle TRI((*ROTATIONS)[_triplets[3*triplet  ]] * _labels[labelA],
                                (*ROTATIONS)[_triplets[3*triplet+1]] * _labels[labelB],
                                (*ROTATIONS)[_triplets[3*triplet+2]] * _labels[labelC],0);
-    newresampler::Triangle TRI_ORIG(_ORIG.get_coord(m0),
-                                    _ORIG.get_coord(m1),
-                                    _ORIG.get_coord(m2),0);
     newresampler::Triangle TRI_noDEF(_CONTROLMESHES[meshID].get_coord(m0),
                                      _CONTROLMESHES[meshID].get_coord(m1),
                                      _CONTROLMESHES[meshID].get_coord(m2),0);
 
     if((TRI.normal() | TRI_noDEF.normal()) < 0) { return 1e7; }
+
+    newresampler::Triangle TRI_ORIG(_ORIG.get_coord(m0),
+                                    _ORIG.get_coord(m1),
+                                    _ORIG.get_coord(m2),0);
 
     return _reglambda * MISCMATHS::pow(calculate_triangular_strain(TRI_ORIG,TRI,_mu,_kappa),_rexp);
 }
@@ -67,11 +68,12 @@ double DiscreteGroupCostFunction::computeTripletCost(int triplet, int labelA, in
 void DiscreteGroupCostFunction::get_source_data() {
     #pragma omp parallel for num_threads(_threads)
     for (int subject = 0; subject < num_subjects; ++subject)
-        for (int k = 0; k < _CONTROLMESHES[subject].nvertices(); k++)
+        for (int k = 0; k < _CONTROLMESHES[subject].nvertices(); k++) {
+            newresampler::Point CP = _CONTROLMESHES[subject].get_coord(k);
             for (int i = 0; i < _DATAMESHES[subject].nvertices(); i++)
-                if (((2 * RAD * asin((_CONTROLMESHES[subject].get_coord(k)-_DATAMESHES[subject].get_coord(i)).norm() / (2*RAD)))
-                            < _controlptrange * SPACINGS[subject](k+1)))
-                    _sourceinrange[subject*VERTICES_PER_SUBJ+k].push_back(i);
+                if (((2*RAD * asin((CP - _DATAMESHES[subject].get_coord(i)).norm()/(2 * RAD))) < _controlptrange * SPACINGS[subject](k + 1)))
+                    _sourceinrange[subject * VERTICES_PER_SUBJ + k].push_back(i);
+        }
 }
 
 double DiscreteGroupCostFunction::computePairwiseCost(int pair, int labelA, int labelB) {
@@ -90,6 +92,7 @@ double DiscreteGroupCostFunction::computePairwiseCost(int pair, int labelA, int 
 
     return sim.get_sim_for_min(get_patch_data(nodeA, rotA),
                                 get_patch_data(nodeB, rotB));
+    // TODO: not sure that these are the same in size! Rethink...
 }
 
 std::vector<double> DiscreteGroupCostFunction::get_patch_data(int node, const NEWMAT::Matrix& rot) {

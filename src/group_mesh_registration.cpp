@@ -52,25 +52,14 @@ void Group_Mesh_registration::evaluate() {
     if(_verbose) std::cout << "Exit main algorithm." << std::endl;
 }
 
-void Group_Mesh_registration::transform(const std::string &filename) {
-
-    for(int i = 0; i < MESHES.size(); ++i)
-    {
-        newresampler::barycentric_mesh_interpolation(MESHES[i], SPH_orig, ALL_SPH_REG[i]);
-        MESHES[i].save(filename + "sphere-" + std::to_string(i) + ".reg" + _surfformat);
-    }
-}
-
 void Group_Mesh_registration::run_discrete_opt(std::vector<newresampler::Mesh>& meshes) {
 
     int iter = 1;
     double energy = 0.0, newenergy = 0.0;
-    newresampler::Mesh transformed_controlgrid, targetmesh = model->get_TARGET();
+    newresampler::Mesh transformed_controlgrid;
     std::vector<newresampler::Mesh> controlgrid;
 
-    const int _itersforlevel = boost::get<int>(PARAMETERS.find("iters")->second);
-
-    while(iter <= _itersforlevel)
+    while(iter <= boost::get<int>(PARAMETERS.find("iters")->second))
     {
         controlgrid.clear();
         for(int i = 0; i < meshes.size(); ++i)
@@ -84,7 +73,7 @@ void Group_Mesh_registration::run_discrete_opt(std::vector<newresampler::Mesh>& 
 #else
         throw MeshregException("Groupwise mode is only supported in the HOCR version of MSM.");
 #endif
-        if(iter > 1 && iter % 2 != 0 && energy-newenergy < 0.001)
+        if(iter > 3 && energy-newenergy < 0.001)
         {
             if (_verbose)
                 std::cout << iter << " level has converged.\n"
@@ -99,13 +88,22 @@ void Group_Mesh_registration::run_discrete_opt(std::vector<newresampler::Mesh>& 
         for(int i = 0; i < meshes.size(); ++i)
         {
             transformed_controlgrid = model->get_CPgrid(i);
-            newresampler::barycentric_mesh_interpolation(meshes[i], controlgrid[i], transformed_controlgrid);
+            newresampler::barycentric_mesh_interpolation(meshes[i], controlgrid[i], transformed_controlgrid, _numthreads);
             unfold(transformed_controlgrid);
             model->reset_CPgrid(transformed_controlgrid, i);
             unfold(meshes[i]);
         }
         energy = newenergy;
         iter++;
+    }
+}
+
+void Group_Mesh_registration::transform(const std::string &filename) {
+
+    for(int i = 0; i < MESHES.size(); ++i)
+    {
+        newresampler::barycentric_mesh_interpolation(MESHES[i], SPH_orig, ALL_SPH_REG[i]);
+        MESHES[i].save(filename + "sphere-" + std::to_string(i) + ".reg" + _surfformat);
     }
 }
 
