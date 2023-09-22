@@ -90,8 +90,15 @@ double DiscreteGroupCostFunction::computePairwiseCost(int pair, int labelA, int 
     auto rotA = newresampler::estimate_rotation_matrix(_CONTROLMESHES[meshAID].get_coord(nodeAID), (*ROTATIONS)[nodeA]*_labels[labelA]);
     auto rotB = newresampler::estimate_rotation_matrix(_CONTROLMESHES[meshBID].get_coord(nodeBID), (*ROTATIONS)[nodeB]*_labels[labelB]);
 
-    return sim.get_sim_for_min(get_patch_data(nodeA, rotA),
-                                get_patch_data(nodeB, rotB));
+    auto patch_data_A = get_patch_data(nodeA, rotA);
+    auto patch_data_B = get_patch_data(nodeB, rotB);
+
+    if(patch_data_A.size() < patch_data_B.size())
+        patch_data_B.resize(patch_data_A.size());
+    else if (patch_data_A.size() > patch_data_B.size())
+        patch_data_A.resize(patch_data_B.size());
+
+    return sim.get_sim_for_min(patch_data_A, patch_data_B);
     // TODO: not sure that these are the same in size! Rethink...
 }
 

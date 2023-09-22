@@ -205,7 +205,6 @@ double NonLinearSRegDiscreteCostFunction::computeTripletCost(int triplet, int la
                 std::map<int,bool> moved2;
                 std::map<int,newresampler::Point> transformed_points;
 
-                #pragma omp parallel for num_threads(mcmc_threads)
                 for (unsigned int n = 0; n < NEARESTFACES[triplet].size(); n++)
                 {
                     newresampler::Triangle TRIorig = _aSOURCE.get_triangle(NEARESTFACES[triplet][n]);
@@ -230,7 +229,6 @@ double NonLinearSRegDiscreteCostFunction::computeTripletCost(int triplet, int la
                 std::map<int,bool> moved2;
                 std::map<int,newresampler::Point> transformed_points;
 
-                #pragma omp parallel for num_threads(mcmc_threads)
                 for (unsigned int n = 0; n < NEARESTFACES[triplet].size(); n++)
                 {
                     newresampler::Triangle TRIorig = _aSOURCE.get_triangle(NEARESTFACES[triplet][n]);
