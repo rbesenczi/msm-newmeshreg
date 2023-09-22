@@ -89,9 +89,9 @@ void Group_Mesh_registration::run_discrete_opt(std::vector<newresampler::Mesh>& 
         {
             transformed_controlgrid = model->get_CPgrid(i);
             newresampler::barycentric_mesh_interpolation(meshes[i], controlgrid[i], transformed_controlgrid, _numthreads);
-            unfold(transformed_controlgrid);
+            unfold(transformed_controlgrid, _verbose);
             model->reset_CPgrid(transformed_controlgrid, i);
-            unfold(meshes[i]);
+            unfold(meshes[i], _verbose);
         }
         energy = newenergy;
         iter++;

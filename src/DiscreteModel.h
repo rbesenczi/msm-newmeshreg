@@ -120,7 +120,7 @@ public:
 
     virtual inline void warp_CPgrid(newresampler::Mesh& START, newresampler::Mesh& END, int num = 0) {
         barycentric_mesh_interpolation(m_CPgrid,START,END, _nthreads);
-        unfold(m_CPgrid);
+        unfold(m_CPgrid, m_verbosity);
     }
 
     //---DEBUG AND REPORT---//

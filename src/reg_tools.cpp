@@ -131,7 +131,7 @@ bool check_for_intersections(int ind, newresampler::Mesh& IN) {
     return false;
 }
 
-void unfold(newresampler::Mesh& SOURCE) {
+void unfold(newresampler::Mesh& SOURCE, bool verbosity) {
 
     std::vector<int> foldedvertices;
     std::vector<newresampler::Point> foldinggradients;
@@ -148,9 +148,9 @@ void unfold(newresampler::Mesh& SOURCE) {
             if (check_for_intersections(i, SOURCE))
                 foldedvertices.push_back(i);
 
-        if (foldedvertices.empty()) folded = false;
+        if (foldedvertices.empty()) return;
 
-        else if (it % 100 == 0)
+        else if (it % 100 == 0 && verbosity)
             std::cout << "Mesh is folded, total folded vertices: " << foldedvertices.size() << " iter: " << it << std::endl;
 
         for (int foldedvertice: foldedvertices)

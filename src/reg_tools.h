@@ -45,7 +45,7 @@ void computeNormal2EdgeOfTriangle(const newresampler::Point& v0, const newresamp
 newresampler::Point computeGradientOfBarycentricTriangle(const newresampler::Point& v0, const newresampler::Point& v1, const newresampler::Point& v2);
 newresampler::Point spatialgradient(int index, const newresampler::Mesh& SOURCE);
 bool check_for_intersections(int ind, newresampler::Mesh &IN);
-void unfold(newresampler::Mesh& SOURCE);
+void unfold(newresampler::Mesh& SOURCE, bool verbosity = false);
 
 //---TANGS---//
 newresampler::Tangs calculate_tangs(int ind, const newresampler::Mesh& SPH_in);

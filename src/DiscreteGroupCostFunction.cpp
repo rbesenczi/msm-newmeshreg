@@ -99,7 +99,6 @@ double DiscreteGroupCostFunction::computePairwiseCost(int pair, int labelA, int 
         patch_data_A.resize(patch_data_B.size());
 
     return sim.get_sim_for_min(patch_data_A, patch_data_B);
-    // TODO: not sure that these are the same in size! Rethink...
 }
 
 std::vector<double> DiscreteGroupCostFunction::get_patch_data(int node, const NEWMAT::Matrix& rot) {

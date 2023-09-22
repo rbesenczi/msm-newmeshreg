@@ -41,7 +41,7 @@ public:
 
     void warp_CPgrid(newresampler::Mesh& start, newresampler::Mesh& end, int num = 0) override {
         newresampler::barycentric_mesh_interpolation(m_controlmeshes[num], start, end);
-        unfold(m_controlmeshes[num]);
+        unfold(m_controlmeshes[num], m_verbosity);
     }
 
     void applyLabeling() override { applyLabeling(labeling); }

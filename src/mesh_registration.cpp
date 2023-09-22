@@ -308,7 +308,7 @@ newresampler::Mesh Mesh_registration::project_CPgrid(newresampler::Mesh SPH_in, 
         if(_debug) incurrent.save(_outdir + "sphere.regLR.Res" + std::to_string(level) + ".surf");
     }
 
-    unfold(SPH_in);
+    unfold(SPH_in, _verbose);
 
     return SPH_in;
 }
@@ -403,9 +403,9 @@ void Mesh_registration::run_discrete_opt(newresampler::Mesh& source) {
         newresampler::barycentric_mesh_interpolation(source, controlgrid, transformed_controlgrid, _numthreads);
         controlgrid = transformed_controlgrid;
         // higher order frameowrk continuous deforms the CP grid whereas the original FW resets the grid each time
-        unfold(transformed_controlgrid);
+        unfold(transformed_controlgrid, _verbose);
         model->reset_CPgrid(transformed_controlgrid); // source mesh is updated and control point grids are reset
-        unfold(source);
+        unfold(source, _verbose);
         energy = newenergy;
         iter++;
     }
