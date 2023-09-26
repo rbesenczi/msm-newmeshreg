@@ -9,15 +9,16 @@ void DiscreteGroupModel::initialize_pairs() {
         for (int i = 0; i < m_controlmeshes[n].nvertices(); i++)
             for (int n2 = n+1; n2 < m_num_subjects; n2++)
                 m_num_pairs++;
+    pairs = new int[2 * m_num_pairs];
 }
 
 void DiscreteGroupModel::estimate_pairs() {
 
     int pair = 0;
-    pairs = new int[2 * m_num_pairs];
 
     std::vector<std::shared_ptr<newresampler::Octree>> cp_grid_trees(m_num_subjects);
 
+    #pragma omp parallel for num_threads(_nthreads)
     for (int i = 0; i < m_num_subjects; ++i)
         cp_grid_trees[i] = std::make_shared<newresampler::Octree>(m_controlmeshes[i]);
 
@@ -43,6 +44,7 @@ void DiscreteGroupModel::estimate_triplets() {
 
     triplets = new int[3 * m_num_triplets];
 
+    #pragma omp parallel for num_threads(_nthreads)
     for (int n = 0; n < m_num_subjects; n++)
         for (int i = 0; i < num_triangles; i++)
         {
@@ -59,11 +61,13 @@ void DiscreteGroupModel::estimate_triplets() {
 void DiscreteGroupModel::get_rotations(std::vector<NEWMAT::Matrix>& ROT) {
 
     ROT.clear();
+    ROT.resize(m_num_subjects * control_grid_size);
     const newresampler::Point& ci = m_samplinggrid.get_coord(m_centroid);
 
+    #pragma omp parallel for num_threads(_nthreads)
     for (int n = 0; n < m_num_subjects; n++)
         for (int k = 0; k < m_controlmeshes[n].nvertices(); k++)
-            ROT.emplace_back(estimate_rotation_matrix(ci, m_controlmeshes[n].get_coord(k)));
+            ROT[n * control_grid_size + k] = estimate_rotation_matrix(ci, m_controlmeshes[n].get_coord(k));
 }
 
 void DiscreteGroupModel::Initialize(const newresampler::Mesh& controlgrid) {
@@ -72,9 +76,6 @@ void DiscreteGroupModel::Initialize(const newresampler::Mesh& controlgrid) {
     m_num_nodes = control_grid_size * m_num_subjects;
     m_controlmeshes.clear();
     m_controlmeshes.resize(m_num_subjects, controlgrid);
-    datameshtrees.resize(m_num_subjects);
-
-    if (m_debug) m_template.save("TEMPLATE_res" + std::to_string(m_CPres) + ".surf.gii");
 
     initialize_pairs();
     estimate_triplets();
@@ -84,12 +85,7 @@ void DiscreteGroupModel::Initialize(const newresampler::Mesh& controlgrid) {
     initLabeling();
     Initialize_sampling_grid();
 
-    for(int subject = 0; subject < m_num_subjects; ++subject)
-        datameshtrees[subject] = std::make_shared<newresampler::Octree>(m_datameshes[subject]);
-
-    costfct->set_meshes(m_template, m_datameshes[0], controlgrid, m_datameshes.size());
-    costfct->set_trees(datameshtrees);
-
+    costfct->set_meshes(m_template, m_datameshes[0], controlgrid, m_num_subjects);
     m_iter = 1;
 }
 
@@ -101,6 +97,14 @@ void DiscreteGroupModel::setupCostFunction() {
         costfct->reset_CPgrid(m_controlmeshes[n], n);
 
     costfct->set_iter(m_iter);
+
+    datameshtrees.clear();
+    datameshtrees.resize(m_num_subjects);
+
+    #pragma omp parallel for num_threads(_nthreads)
+    for(int subject = 0; subject < m_num_subjects; ++subject)
+        datameshtrees[subject] = std::make_shared<newresampler::Octree>(m_datameshes[subject]);
+    costfct->set_trees(datameshtrees);
 
     //---GET BETWEEN MESH GROUPINGS---//
     estimate_pairs();
@@ -123,7 +127,6 @@ void DiscreteGroupModel::setupCostFunction() {
     costfct->setTriplets(triplets);
 
     costfct->initialize(m_num_nodes, m_num_labels, m_num_pairs, m_num_triplets);
-    costfct->get_source_data();
 
     if(m_verbosity)
         std::cout << " numpoints " << m_num_nodes << " m_num_labels " << m_num_labels << " m_num_pairs " << m_num_pairs << std::endl;

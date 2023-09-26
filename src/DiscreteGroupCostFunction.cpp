@@ -17,6 +17,7 @@ void DiscreteGroupCostFunction::initialize(int numNodes, int numLabels, int numP
     get_spacings();
     _sourceinrange.clear();
     _sourceinrange.resize(VERTICES_PER_SUBJ * num_subjects);
+    get_source_data();
 }
 
 void DiscreteGroupCostFunction::get_spacings() {
@@ -68,7 +69,7 @@ double DiscreteGroupCostFunction::computeTripletCost(int triplet, int labelA, in
 void DiscreteGroupCostFunction::get_source_data() {
     #pragma omp parallel for num_threads(_threads)
     for (int subject = 0; subject < num_subjects; ++subject)
-        for (int k = 0; k < _CONTROLMESHES[subject].nvertices(); k++) {
+        for (int k = 0; k < VERTICES_PER_SUBJ; k++) {
             newresampler::Point CP = _CONTROLMESHES[subject].get_coord(k);
             for (int i = 0; i < _DATAMESHES[subject].nvertices(); i++)
                 if (((2*RAD * asin((CP - _DATAMESHES[subject].get_coord(i)).norm()/(2 * RAD))) < _controlptrange * SPACINGS[subject](k + 1)))

@@ -93,6 +93,7 @@ void Group_Mesh_registration::run_discrete_opt(std::vector<newresampler::Mesh>& 
             model->reset_CPgrid(transformed_controlgrid, i);
             unfold(meshes[i], _verbose);
         }
+        if(_debug) save_transformed_data(_outdir + "level" + std::to_string(level) + ".iter" + std::to_string(iter) + '.');
         energy = newenergy;
         iter++;
     }
@@ -108,11 +109,12 @@ void Group_Mesh_registration::transform(const std::string &filename) {
 }
 
 void Group_Mesh_registration::save_transformed_data(const std::string &filename) {
+    #pragma omp parallel for num_threads(_numthreads)
     for(int i = 0; i < MESHES.size(); ++i)
     {
         std::shared_ptr<MISCMATHS::BFMatrix> data;
         set_data(DATAlist[i], data, MESHES[i]);
-        newresampler::metric_resample(MESHES[i], templ, _numthreads).save(filename + "transformed_and_reprojected-" + std::to_string(i) + _dataformat);
+        newresampler::metric_resample(MESHES[i], templ).save(filename + "transformed_and_reprojected-" + std::to_string(i) + _dataformat);
     }
 }
 
