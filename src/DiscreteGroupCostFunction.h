@@ -30,7 +30,6 @@ public:
     //---Compute costs---//
     double computeTripletCost(int triplet, int labelA, int labelB, int labelC) override;
     double computePairwiseCost(int pair, int labelA, int labelB) override;
-    std::vector<double> get_patch_data(int, const NEWMAT::Matrix& rot);
     void get_source_data() override;
 
 private:

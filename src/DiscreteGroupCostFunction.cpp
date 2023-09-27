@@ -16,7 +16,7 @@ void DiscreteGroupCostFunction::initialize(int numNodes, int numLabels, int numP
     DiscreteCostFunction::initialize(numNodes, numLabels, numPairs, numTriplets);
     get_spacings();
     _sourceinrange.clear();
-    _sourceinrange.resize(VERTICES_PER_SUBJ * num_subjects);
+    _sourceinrange.resize(VERTICES_PER_SUBJ * num_subjects * numLabels);
     get_source_data();
 }
 
@@ -67,13 +67,17 @@ double DiscreteGroupCostFunction::computeTripletCost(int triplet, int labelA, in
 }
 
 void DiscreteGroupCostFunction::get_source_data() {
-    #pragma omp parallel for num_threads(_threads)
     for (int subject = 0; subject < num_subjects; ++subject)
+        #pragma omp parallel for num_threads(_threads)
         for (int k = 0; k < VERTICES_PER_SUBJ; k++) {
             newresampler::Point CP = _CONTROLMESHES[subject].get_coord(k);
-            for (int i = 0; i < _DATAMESHES[subject].nvertices(); i++)
-                if (((2*RAD * asin((CP - _DATAMESHES[subject].get_coord(i)).norm()/(2 * RAD))) < _controlptrange * SPACINGS[subject](k + 1)))
-                    _sourceinrange[subject * VERTICES_PER_SUBJ + k].push_back(i);
+            for(int label = 0; label < m_num_labels; ++label) {
+                newresampler::Point LP = CP * newresampler::estimate_rotation_matrix(CP, (*ROTATIONS)[k+subject*VERTICES_PER_SUBJ]*_labels[label]);
+                for(int i = 0; i < _DATAMESHES[subject].nvertices(); ++i)
+                    if (((2 * RAD * asin((LP - _DATAMESHES[subject].get_coord(i)).norm() / (2 * RAD))) <
+                         _controlptrange * SPACINGS[subject](k + 1)))
+                        _sourceinrange[subject * VERTICES_PER_SUBJ * m_num_labels + k * m_num_labels + label].push_back(i);
+            }
         }
 }
 
@@ -88,11 +92,16 @@ double DiscreteGroupCostFunction::computePairwiseCost(int pair, int labelA, int 
     int nodeAID = nodeA - meshAID*VERTICES_PER_SUBJ;
     int nodeBID = nodeB - meshBID*VERTICES_PER_SUBJ;
 
-    auto rotA = newresampler::estimate_rotation_matrix(_CONTROLMESHES[meshAID].get_coord(nodeAID), (*ROTATIONS)[nodeA]*_labels[labelA]);
-    auto rotB = newresampler::estimate_rotation_matrix(_CONTROLMESHES[meshBID].get_coord(nodeBID), (*ROTATIONS)[nodeB]*_labels[labelB]);
+    std::vector<int> patchA = _sourceinrange[meshAID*VERTICES_PER_SUBJ*m_num_labels + nodeAID*m_num_labels + labelA];
+    std::vector<int> patchB = _sourceinrange[meshBID*VERTICES_PER_SUBJ*m_num_labels + nodeBID*m_num_labels + labelB];
 
-    auto patch_data_A = get_patch_data(nodeA, rotA);
-    auto patch_data_B = get_patch_data(nodeB, rotB);
+    std::vector<double> patch_data_A(patchA.size(),0.0),
+                        patch_data_B(patchB.size(),0.0);
+
+    for(int i = 0; i < patchA.size(); ++i)
+        patch_data_A[i] = FEAT->get_data_val(1,patchA[i] + 1,meshAID);
+    for(int i = 0; i < patchB.size(); ++i)
+        patch_data_B[i] = FEAT->get_data_val(1,patchB[i] + 1,meshBID);
 
     if(patch_data_A.size() < patch_data_B.size())
         patch_data_B.resize(patch_data_A.size());
@@ -100,33 +109,6 @@ double DiscreteGroupCostFunction::computePairwiseCost(int pair, int labelA, int 
         patch_data_A.resize(patch_data_B.size());
 
     return sim.get_sim_for_min(patch_data_A, patch_data_B);
-}
-
-std::vector<double> DiscreteGroupCostFunction::get_patch_data(int node, const NEWMAT::Matrix& rot) {
-
-    std::vector<double> data(_sourceinrange[node].size(), 0.0);
-    int subject = std::floor((double)node/VERTICES_PER_SUBJ);
-
-    for(unsigned int i = 0; i < _sourceinrange[node].size(); i++)
-    {
-        newresampler::Point tmp = rot * _DATAMESHES[subject].get_coord(_sourceinrange[node][i]);
-
-        newresampler::Triangle closest_triangle = datameshtrees[subject]->get_closest_triangle(tmp);
-
-        newresampler::Point v0 = closest_triangle.get_vertex_coord(0),
-                            v1 = closest_triangle.get_vertex_coord(1),
-                            v2 = closest_triangle.get_vertex_coord(2);
-                        int n0 = closest_triangle.get_vertex_no(0),
-                            n1 = closest_triangle.get_vertex_no(1),
-                            n2 = closest_triangle.get_vertex_no(2);
-
-        data[i] = newresampler::barycentric_weight(v0, v1, v2, tmp,
-                                                    FEAT->get_data_val(1, n0+1, subject),
-                                                    FEAT->get_data_val(1, n1+1, subject),
-                                                    FEAT->get_data_val(1, n2+1, subject));
-    }
-
-    return data;
 }
 
 } //namespace newmeshreg
