@@ -72,7 +72,8 @@ void DiscreteGroupCostFunction::get_source_data() {
         for (int k = 0; k < VERTICES_PER_SUBJ; k++) {
             newresampler::Point CP = _CONTROLMESHES[subject].get_coord(k);
             for(int label = 0; label < m_num_labels; ++label) {
-                newresampler::Point LP = CP * newresampler::estimate_rotation_matrix(CP, (*ROTATIONS)[k+subject*VERTICES_PER_SUBJ]*_labels[label]);
+                //newresampler::Point LP = CP * newresampler::estimate_rotation_matrix(CP, (*ROTATIONS)[k+subject*VERTICES_PER_SUBJ]*_labels[label]);
+                newresampler::Point LP = (*ROTATIONS)[k+subject*VERTICES_PER_SUBJ]*_labels[label];
                 for(int i = 0; i < _DATAMESHES[subject].nvertices(); ++i)
                     if (((2 * RAD * asin((LP - _DATAMESHES[subject].get_coord(i)).norm() / (2 * RAD))) <
                          _controlptrange * SPACINGS[subject](k + 1)))

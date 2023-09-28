@@ -32,7 +32,12 @@ public:
         }
     }
 
-    inline void set_data_list(const std::string& s) { DATAlist = read_ascii_list(s); }
+    inline void set_data_list(const std::string& s) {
+        DATAlist = read_ascii_list(s);
+        if (_verbose)
+            for (int i = 0; i < DATAlist.size(); ++i)
+                std::cout << "Data #" << i << " is " << DATAlist[i] << std::endl;
+    }
 
     inline void set_template(const std::string &M) {
         if(_verbose) std::cout << "Template is " << M << std::endl;

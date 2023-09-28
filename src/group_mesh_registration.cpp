@@ -54,19 +54,15 @@ void Group_Mesh_registration::evaluate() {
 
 void Group_Mesh_registration::run_discrete_opt(std::vector<newresampler::Mesh>& meshes) {
 
-    int iter = 1;
     double energy = 0.0, newenergy = 0.0;
-    newresampler::Mesh transformed_controlgrid;
-    std::vector<newresampler::Mesh> controlgrid;
 
-    while(iter <= boost::get<int>(PARAMETERS.find("iters")->second))
+    for(int iter = 1; iter < boost::get<int>(PARAMETERS.find("iters")->second); ++iter)
     {
-        if(_debug) save_transformed_data(_outdir + "level" + std::to_string(level) + ".before.iter" + std::to_string(iter) + '.');
-        controlgrid.clear();
+        std::vector<newresampler::Mesh> controlgrid; controlgrid.reserve(meshes.size());
         for(int i = 0; i < meshes.size(); ++i)
         {
             model->reset_meshspace(meshes[i], i);
-            controlgrid.push_back(model->get_CPgrid(i));
+            controlgrid.emplace_back(model->get_CPgrid(i));
         }
         model->setupCostFunction();
 #ifdef HAS_HOCR
@@ -74,7 +70,7 @@ void Group_Mesh_registration::run_discrete_opt(std::vector<newresampler::Mesh>& 
 #else
         throw MeshregException("Groupwise mode is only supported in the HOCR version of MSM.");
 #endif
-        if(iter > 3 && energy-newenergy < 0.001)
+        if(iter > 6 && energy-newenergy < 0.001)
         {
             if (_verbose)
                 std::cout << iter << " level has converged.\n"
@@ -88,16 +84,13 @@ void Group_Mesh_registration::run_discrete_opt(std::vector<newresampler::Mesh>& 
 
         for(int i = 0; i < meshes.size(); ++i)
         {
-            transformed_controlgrid = model->get_CPgrid(i);
-            newresampler::barycentric_mesh_interpolation(meshes[i], controlgrid[i], transformed_controlgrid, _numthreads);
-            newresampler::barycentric_mesh_interpolation(MESHES[i], controlgrid[i], transformed_controlgrid, _numthreads);
+            auto transformed_controlgrid = model->get_CPgrid(i);
             unfold(transformed_controlgrid, _verbose);
+            newresampler::barycentric_mesh_interpolation(meshes[i], controlgrid[i], transformed_controlgrid, _numthreads);
             model->reset_CPgrid(transformed_controlgrid, i);
             unfold(meshes[i], _verbose);
         }
-        if(_debug) save_transformed_data(_outdir + "level" + std::to_string(level) + ".after.iter" + std::to_string(iter) + '.');
         energy = newenergy;
-        iter++;
     }
 }
 
@@ -105,7 +98,7 @@ void Group_Mesh_registration::transform(const std::string &filename) {
 
     for(int i = 0; i < MESHES.size(); ++i)
     {
-        newresampler::barycentric_mesh_interpolation(MESHES[i], SPH_orig, ALL_SPH_REG[i]);
+        newresampler::barycentric_mesh_interpolation(MESHES[i], SPH_orig, ALL_SPH_REG[i],_numthreads);
         MESHES[i].save(filename + "sphere-" + std::to_string(i) + ".reg" + _surfformat);
     }
 }
