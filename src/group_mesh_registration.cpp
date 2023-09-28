@@ -61,6 +61,7 @@ void Group_Mesh_registration::run_discrete_opt(std::vector<newresampler::Mesh>& 
 
     while(iter <= boost::get<int>(PARAMETERS.find("iters")->second))
     {
+        if(_debug) save_transformed_data(_outdir + "level" + std::to_string(level) + ".before.iter" + std::to_string(iter) + '.');
         controlgrid.clear();
         for(int i = 0; i < meshes.size(); ++i)
         {
@@ -89,11 +90,12 @@ void Group_Mesh_registration::run_discrete_opt(std::vector<newresampler::Mesh>& 
         {
             transformed_controlgrid = model->get_CPgrid(i);
             newresampler::barycentric_mesh_interpolation(meshes[i], controlgrid[i], transformed_controlgrid, _numthreads);
+            newresampler::barycentric_mesh_interpolation(MESHES[i], controlgrid[i], transformed_controlgrid, _numthreads);
             unfold(transformed_controlgrid, _verbose);
             model->reset_CPgrid(transformed_controlgrid, i);
             unfold(meshes[i], _verbose);
         }
-        if(_debug) save_transformed_data(_outdir + "level" + std::to_string(level) + ".iter" + std::to_string(iter) + '.');
+        if(_debug) save_transformed_data(_outdir + "level" + std::to_string(level) + ".after.iter" + std::to_string(iter) + '.');
         energy = newenergy;
         iter++;
     }
@@ -109,12 +111,11 @@ void Group_Mesh_registration::transform(const std::string &filename) {
 }
 
 void Group_Mesh_registration::save_transformed_data(const std::string &filename) {
-    #pragma omp parallel for num_threads(_numthreads)
     for(int i = 0; i < MESHES.size(); ++i)
     {
         std::shared_ptr<MISCMATHS::BFMatrix> data;
         set_data(DATAlist[i], data, MESHES[i]);
-        newresampler::metric_resample(MESHES[i], templ).save(filename + "transformed_and_reprojected-" + std::to_string(i) + _dataformat);
+        newresampler::metric_resample(MESHES[i], templ, _numthreads).save(filename + "transformed_and_reprojected-" + std::to_string(i) + _dataformat);
     }
 }
 
