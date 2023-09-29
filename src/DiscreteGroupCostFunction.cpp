@@ -2,45 +2,11 @@
 
 namespace newmeshreg {
 
-void DiscreteGroupCostFunction::set_parameters(myparam& p) {
-    myparam::iterator it;
-    it=p.find("lambda");_reglambda=boost::get<float>(it->second);
-    it=p.find("simmeasure");_simmeasure=boost::get<int>(it->second); sim.set_simval(_simmeasure);
-    it=p.find("shearmodulus");_mu=boost::get<float>(it->second);
-    it=p.find("bulkmodulus");_kappa=boost::get<float>(it->second);
-    it=p.find("verbosity");_verbosity=boost::get<bool>(it->second);
-    it=p.find("numthreads"); _threads=boost::get<int>(it->second);
-}
-
 void DiscreteGroupCostFunction::initialize(int numNodes, int numLabels, int numPairs, int numTriplets) {
     DiscreteCostFunction::initialize(numNodes, numLabels, numPairs, numTriplets);
-    get_spacings();
     _sourceinrange.clear();
     _sourceinrange.resize(VERTICES_PER_SUBJ * num_subjects * numLabels);
     get_source_data();
-}
-
-void DiscreteGroupCostFunction::get_spacings() {
-
-    SPACINGS.clear();
-    SPACINGS.resize(num_subjects);
-
-    #pragma omp parallel for num_threads(_threads)
-    for(int n = 0; n < num_subjects; n++)
-    {
-        NEWMAT::ColumnVector vMAXmvd(VERTICES_PER_SUBJ);
-        vMAXmvd = 0;
-        for (int k = 0; k < VERTICES_PER_SUBJ; k++)
-        {
-            newresampler::Point CP = _CONTROLMESHES[n].get_coord(k);
-            for (auto it = _CONTROLMESHES[n].nbegin(k); it != _CONTROLMESHES[n].nend(k); it++)
-            {
-                double dist = 2*RAD * asin((CP -_CONTROLMESHES[n].get_coord(*it)).norm()/(2*RAD));
-                if(dist > vMAXmvd(k+1)) vMAXmvd(k+1) = dist;
-            }
-        }
-        SPACINGS[n] = vMAXmvd;
-    }
 }
 
 double DiscreteGroupCostFunction::computeTripletCost(int triplet, int labelA, int labelB, int labelC) {
@@ -67,19 +33,15 @@ double DiscreteGroupCostFunction::computeTripletCost(int triplet, int labelA, in
 }
 
 void DiscreteGroupCostFunction::get_source_data() {
-    for (int subject = 0; subject < num_subjects; ++subject)
-        #pragma omp parallel for num_threads(_threads)
-        for (int k = 0; k < VERTICES_PER_SUBJ; k++) {
-            newresampler::Point CP = _CONTROLMESHES[subject].get_coord(k);
-            for(int label = 0; label < m_num_labels; ++label) {
-                //newresampler::Point LP = CP * newresampler::estimate_rotation_matrix(CP, (*ROTATIONS)[k+subject*VERTICES_PER_SUBJ]*_labels[label]);
-                newresampler::Point LP = (*ROTATIONS)[k+subject*VERTICES_PER_SUBJ]*_labels[label];
-                for(int i = 0; i < _DATAMESHES[subject].nvertices(); ++i)
-                    if (((2 * RAD * asin((LP - _DATAMESHES[subject].get_coord(i)).norm() / (2 * RAD))) <
-                         _controlptrange * SPACINGS[subject](k + 1)))
-                        _sourceinrange[subject * VERTICES_PER_SUBJ * m_num_labels + k * m_num_labels + label].push_back(i);
+    for (int subject = 0; subject < num_subjects; subject++)
+        for (int vertex = 0; vertex < VERTICES_PER_SUBJ; vertex++)
+            for (int label = 0; label < m_num_labels; label++) {
+                newresampler::Point LP = (*ROTATIONS)[subject * VERTICES_PER_SUBJ + vertex] * _labels[label];
+                for (int datapoint = 0; datapoint < _DATAMESHES[subject].nvertices(); datapoint++)
+                    if (((2 * RAD * asin((LP - _DATAMESHES[subject].get_coord(datapoint)).norm() / (2 * RAD))) <
+                         _controlptrange * SPACINGS[subject](vertex + 1)))
+                _sourceinrange.at(subject * VERTICES_PER_SUBJ * m_num_labels + vertex * m_num_labels + label).push_back(datapoint);
             }
-        }
 }
 
 double DiscreteGroupCostFunction::computePairwiseCost(int pair, int labelA, int labelB) {

@@ -40,13 +40,13 @@ public:
     void reset_CPgrid(const newresampler::Mesh& grid, int num = 0) override { m_controlmeshes[num] = grid; }
 
     void warp_CPgrid(newresampler::Mesh& start, newresampler::Mesh& end, int num = 0) override {
-        newresampler::barycentric_mesh_interpolation(m_controlmeshes[num], start, end);
+        newresampler::barycentric_mesh_interpolation(m_controlmeshes[num], start, end, _nthreads);
         unfold(m_controlmeshes[num], m_verbosity);
     }
 
     void applyLabeling() override { applyLabeling(labeling); }
     void applyLabeling(int* dlabels) override {
-        #pragma omp parallel for num_threads(_nthreads)
+        //#pragma omp parallel for num_threads(_nthreads)
         for (int n = 0; n < m_num_subjects; n++)
             for (int i = 0; i < control_grid_size; i++)
                 m_controlmeshes[n].set_coord(i, m_ROT[i + n * control_grid_size] *

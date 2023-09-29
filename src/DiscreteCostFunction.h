@@ -175,6 +175,7 @@ public:
         ROTATIONS = std::make_shared<std::vector<NEWMAT::Matrix>>(ROT);
     }
     virtual void set_trees(const std::vector<std::shared_ptr<newresampler::Octree>>& trees) {}
+    virtual void set_group_spacings(const std::vector<NEWMAT::ColumnVector>& sp) { }
     virtual void set_spacings(const NEWMAT::ColumnVector& spacings, double MAX) { MAXSEP = spacings; MVDmax = MAX; }
     void set_octrees(std::shared_ptr<newresampler::Octree>& targett) { targettree = targett; }
     virtual void reset_source(const newresampler::Mesh& source, int num = 0) { _SOURCE = source; }

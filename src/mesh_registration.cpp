@@ -290,7 +290,7 @@ newresampler::Mesh Mesh_registration::project_CPgrid(newresampler::Mesh SPH_in, 
             else
             {
                 barycentric_mesh_interpolation(SPH_in, MESHES[num], transformed_mesh, _numthreads);
-                if (model) model->warp_CPgrid(MESHES[num], transformed_mesh, num);
+                if (model) model->warp_CPgrid(MESHES[num],transformed_mesh, num);
                 // for tri clique model control grid is continously deformed
             }
         }
@@ -301,10 +301,10 @@ newresampler::Mesh Mesh_registration::project_CPgrid(newresampler::Mesh SPH_in, 
         newresampler::Mesh icotmp = newresampler::make_mesh_from_icosa(REG.get_resolution());
         true_rescale(icotmp,RAD);
         // project datagrid though warp defined for the high resolution meshes (the equivalent to if registration is run one level at a time )
-        newresampler::Mesh inorig = MESHES[0], incurrent = MESHES[0];
+        newresampler::Mesh inorig = MESHES[num], incurrent = MESHES[num];
         barycentric_mesh_interpolation(incurrent,icotmp,REG, _numthreads);
         barycentric_mesh_interpolation(SPH_in,inorig,incurrent, _numthreads);
-        if(model) model->warp_CPgrid(inorig, incurrent);
+        if(model) model->warp_CPgrid(inorig, incurrent, num);
         if(_debug) incurrent.save(_outdir + "sphere.regLR.Res" + std::to_string(level) + ".surf");
     }
 

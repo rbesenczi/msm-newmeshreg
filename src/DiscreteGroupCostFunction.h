@@ -8,7 +8,6 @@ namespace newmeshreg {
 class DiscreteGroupCostFunction : public NonLinearSRegDiscreteCostFunction {
 
 public:
-    void set_parameters(myparam& p) override;
     void set_meshes(const newresampler::Mesh& target, const newresampler::Mesh& source, const newresampler::Mesh& GRID, int num = 1) {
         _TEMPLATE = target;
         _ORIG = source;
@@ -20,7 +19,7 @@ public:
     }
     //---INITIALISATION---//
     void initialize(int numNodes, int numLabels, int numPairs, int numTriplets) override;
-    void get_spacings();
+    void set_group_spacings(const std::vector<NEWMAT::ColumnVector>& sp) override { SPACINGS = sp; }
     void set_trees(const std::vector<std::shared_ptr<newresampler::Octree>>& trees) override { datameshtrees = trees; }
 
     //---Updates---//

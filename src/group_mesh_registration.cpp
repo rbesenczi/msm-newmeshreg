@@ -35,15 +35,15 @@ void Group_Mesh_registration::initialize_level(int current_lvl) {
 
 void Group_Mesh_registration::evaluate() {
 
-    newresampler::Mesh oldreg;
+    newresampler::Mesh previous_level_reg;
     for(int i = 0; i < MESHES.size(); ++i)
     {
         if(level == 1)
-            ALL_SPH_REG.push_back(project_CPgrid(SPH_orig, oldreg));
+            ALL_SPH_REG.push_back(project_CPgrid(SPH_orig, previous_level_reg, i));
         else
         {
-            oldreg = ALL_SPH_REG[i];
-            ALL_SPH_REG[i] = project_CPgrid(SPH_orig, oldreg, i);
+            previous_level_reg = ALL_SPH_REG[i];
+            ALL_SPH_REG[i] = project_CPgrid(SPH_orig, previous_level_reg, i);
         }
     }
 
@@ -58,7 +58,7 @@ void Group_Mesh_registration::run_discrete_opt(std::vector<newresampler::Mesh>& 
 
     for(int iter = 1; iter < boost::get<int>(PARAMETERS.find("iters")->second); ++iter)
     {
-        std::vector<newresampler::Mesh> controlgrid; controlgrid.reserve(meshes.size());
+        std::vector<newresampler::Mesh> controlgrid;
         for(int i = 0; i < meshes.size(); ++i)
         {
             model->reset_meshspace(meshes[i], i);
