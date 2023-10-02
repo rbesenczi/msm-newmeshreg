@@ -34,6 +34,7 @@ double DiscreteGroupCostFunction::computeTripletCost(int triplet, int labelA, in
 
 void DiscreteGroupCostFunction::get_source_data() {
     for (int subject = 0; subject < num_subjects; subject++)
+        #pragma omp parallel for num_threads(_threads)
         for (int vertex = 0; vertex < VERTICES_PER_SUBJ; vertex++)
             for (int label = 0; label < m_num_labels; label++) {
                 newresampler::Point LP = (*ROTATIONS)[subject * VERTICES_PER_SUBJ + vertex] * _labels[label];

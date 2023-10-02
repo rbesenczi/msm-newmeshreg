@@ -56,29 +56,30 @@ void Group_Mesh_registration::run_discrete_opt(std::vector<newresampler::Mesh>& 
 
     double energy = 0.0, newenergy = 0.0;
 
+    std::vector<newresampler::Mesh> previous_controlgrids(meshes.size());
+
+    for (int i = 0; i < meshes.size(); ++i)
+        previous_controlgrids[i] = model->get_CPgrid(i);
+
     for(int iter = 1; iter < boost::get<int>(PARAMETERS.find("iters")->second); ++iter)
     {
-        std::vector<newresampler::Mesh> controlgrid;
-        for(int i = 0; i < meshes.size(); ++i)
-        {
-            model->reset_meshspace(meshes[i], i);
-            controlgrid.emplace_back(model->get_CPgrid(i));
-        }
         model->setupCostFunction();
 #ifdef HAS_HOCR
         newenergy = Fusion::optimize(model, _verbose, _numthreads);
 #else
         throw MeshregException("Groupwise mode is only supported in the HOCR version of MSM.");
 #endif
-        if(iter > 6 && energy-newenergy < 0.001)
+        if(iter > 1 && iter % 2 != 0 && energy-newenergy < 0.1)
         {
             if (_verbose)
                 std::cout << iter << " level has converged.\n"
-                          << "newenergy " << newenergy << "\tenergy " << energy
-                          << "\tenergy-newenergy " << energy - newenergy << std::endl;
+                          << "New energy==" << newenergy << "\tPrevious energy==" << energy
+                          << "\tEnergy decrease==" << energy - newenergy << std::endl;
 
             break;
         }
+        if (_verbose)
+            std::cout << "\tEnergy decrease==" << energy - newenergy << std::endl;
 
         model->applyLabeling();
 
@@ -86,16 +87,19 @@ void Group_Mesh_registration::run_discrete_opt(std::vector<newresampler::Mesh>& 
         {
             auto transformed_controlgrid = model->get_CPgrid(i);
             unfold(transformed_controlgrid, _verbose);
-            newresampler::barycentric_mesh_interpolation(meshes[i], controlgrid[i], transformed_controlgrid, _numthreads);
-            model->reset_CPgrid(transformed_controlgrid, i);
+
+            //TODO Note: The following two steps are probably unnecessary or can be simplified? E.g. move to the end of the level?
+            newresampler::barycentric_mesh_interpolation(meshes[i], previous_controlgrids[i], transformed_controlgrid, _numthreads);
             unfold(meshes[i], _verbose);
+
+            model->reset_CPgrid(transformed_controlgrid, i);
+            previous_controlgrids[i] = transformed_controlgrid;
         }
         energy = newenergy;
     }
 }
 
 void Group_Mesh_registration::transform(const std::string &filename) {
-
     for(int i = 0; i < MESHES.size(); ++i)
     {
         newresampler::barycentric_mesh_interpolation(MESHES[i], SPH_orig, ALL_SPH_REG[i],_numthreads);

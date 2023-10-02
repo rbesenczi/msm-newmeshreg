@@ -17,7 +17,7 @@ void DiscreteGroupModel::estimate_pairs() {
     int pair = 0;
     std::vector<std::shared_ptr<newresampler::Octree>> cp_grid_trees(m_num_subjects);
 
-    //#pragma omp parallel for num_threads(_nthreads)
+    #pragma omp parallel for num_threads(_nthreads)
     for (int subject = 0; subject < m_num_subjects; ++subject)
         cp_grid_trees[subject] = std::make_shared<newresampler::Octree>(m_controlmeshes[subject]);
 
@@ -43,7 +43,7 @@ void DiscreteGroupModel::estimate_triplets() {
 
     triplets = new int[vertex_per_triangle * m_num_triplets];
 
-    //#pragma omp parallel for num_threads(_nthreads)
+    #pragma omp parallel for num_threads(_nthreads)
     for (int subject = 0; subject < m_num_subjects; subject++)
         for (int triangle = 0; triangle < num_triangles; triangle++)
         {
@@ -64,7 +64,7 @@ void DiscreteGroupModel::get_rotations(std::vector<NEWMAT::Matrix>& ROT) {
     ROT.resize(m_num_subjects * control_grid_size);
     const newresampler::Point ci = m_samplinggrid.get_coord(m_centroid);
 
-    //#pragma omp parallel for num_threads(_nthreads)
+    #pragma omp parallel for num_threads(_nthreads)
     for (int subject = 0; subject < m_num_subjects; subject++)
         for (int vertex = 0; vertex < control_grid_size; vertex++)
             ROT[subject * control_grid_size + vertex] = estimate_rotation_matrix(ci, m_controlmeshes[subject].get_coord(vertex));
@@ -82,12 +82,12 @@ void DiscreteGroupModel::Initialize(const newresampler::Mesh& controlgrid) {
     datameshtrees.clear();
     datameshtrees.resize(m_num_subjects);
 
-    //#pragma omp parallel for num_threads(_nthreads)
+    #pragma omp parallel for num_threads(_nthreads)
     for(int subject = 0; subject < m_num_subjects; ++subject)
         datameshtrees[subject] = std::make_shared<newresampler::Octree>(m_datameshes[subject]);
 
     std::vector<NEWMAT::ColumnVector> spacings(m_num_subjects);
-    //#pragma omp parallel for num_threads(_threads)
+    #pragma omp parallel for num_threads(_nthreads)
     for(int subject = 0; subject < m_num_subjects; subject++)
     {
         NEWMAT::ColumnVector vMAXmvd(control_grid_size);
