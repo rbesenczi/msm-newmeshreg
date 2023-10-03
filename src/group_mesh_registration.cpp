@@ -54,18 +54,17 @@ void Group_Mesh_registration::evaluate() {
 
 void Group_Mesh_registration::run_discrete_opt(std::vector<newresampler::Mesh>& meshes) {
 
-    double energy = 0.0, newenergy = 0.0;
-
-    std::vector<newresampler::Mesh> previous_controlgrids(meshes.size());
+    double energy = 0.0;
+    std::vector<newresampler::Mesh> original_controlgrids(meshes.size());
 
     for (int i = 0; i < meshes.size(); ++i)
-        previous_controlgrids[i] = model->get_CPgrid(i);
+        original_controlgrids[i] = model->get_CPgrid(i);
 
     for(int iter = 1; iter < boost::get<int>(PARAMETERS.find("iters")->second); ++iter)
     {
         model->setupCostFunction();
 #ifdef HAS_HOCR
-        newenergy = Fusion::optimize(model, _verbose, _numthreads);
+        double newenergy = Fusion::optimize(model, _verbose, _numthreads);
 #else
         throw MeshregException("Groupwise mode is only supported in the HOCR version of MSM.");
 #endif
@@ -78,8 +77,8 @@ void Group_Mesh_registration::run_discrete_opt(std::vector<newresampler::Mesh>& 
 
             break;
         }
-        if (_verbose)
-            std::cout << "\tEnergy decrease==" << energy - newenergy << std::endl;
+
+        if (iter > 1 && _verbose) std::cout << "\tEnergy decrease==" << energy - newenergy << std::endl;
 
         model->applyLabeling();
 
@@ -87,15 +86,15 @@ void Group_Mesh_registration::run_discrete_opt(std::vector<newresampler::Mesh>& 
         {
             auto transformed_controlgrid = model->get_CPgrid(i);
             unfold(transformed_controlgrid, _verbose);
-
-            //TODO Note: The following two steps are probably unnecessary or can be simplified? E.g. move to the end of the level?
-            newresampler::barycentric_mesh_interpolation(meshes[i], previous_controlgrids[i], transformed_controlgrid, _numthreads);
-            unfold(meshes[i], _verbose);
-
             model->reset_CPgrid(transformed_controlgrid, i);
-            previous_controlgrids[i] = transformed_controlgrid;
         }
         energy = newenergy;
+    }
+
+    for(int i = 0; i < meshes.size(); ++i)
+    {
+        newresampler::barycentric_mesh_interpolation(meshes[i], original_controlgrids[i], model->get_CPgrid(i), _numthreads);
+        unfold(meshes[i], _verbose);
     }
 }
 
