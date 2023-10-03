@@ -4,8 +4,8 @@ namespace newmeshreg {
 
 void DiscreteGroupCostFunction::initialize(int numNodes, int numLabels, int numPairs, int numTriplets) {
     DiscreteCostFunction::initialize(numNodes, numLabels, numPairs, numTriplets);
-    _sourceinrange.clear();
-    _sourceinrange.resize(VERTICES_PER_SUBJ * num_subjects * numLabels);
+    source_in_range_data.clear();
+    source_in_range_data.resize(VERTICES_PER_SUBJ * num_subjects * numLabels);
     get_source_data();
 }
 
@@ -37,42 +37,32 @@ void DiscreteGroupCostFunction::get_source_data() {
         #pragma omp parallel for num_threads(_threads)
         for (int vertex = 0; vertex < VERTICES_PER_SUBJ; vertex++)
             for (int label = 0; label < m_num_labels; label++) {
-                newresampler::Point LP = (*ROTATIONS)[subject * VERTICES_PER_SUBJ + vertex] * _labels[label];
+                const newresampler::Point LP = (*ROTATIONS)[subject * VERTICES_PER_SUBJ + vertex] * _labels[label];
                 for (int datapoint = 0; datapoint < _DATAMESHES[subject].nvertices(); datapoint++)
                     if (((2 * RAD * asin((LP - _DATAMESHES[subject].get_coord(datapoint)).norm() / (2 * RAD))) <
                          _controlptrange * SPACINGS[subject](vertex + 1)))
-                _sourceinrange.at(subject * VERTICES_PER_SUBJ * m_num_labels + vertex * m_num_labels + label).push_back(datapoint);
+                        source_in_range_data[subject * VERTICES_PER_SUBJ * m_num_labels + vertex * m_num_labels + label].push_back(FEAT->get_data_val(1,datapoint + 1,subject));
             }
 }
 
 double DiscreteGroupCostFunction::computePairwiseCost(int pair, int labelA, int labelB) {
 
-    int nodeA = _pairs[2*pair];
-    int nodeB = _pairs[2*pair+1];
+    int subject_A = std::floor((double)_pairs[2*pair  ] / VERTICES_PER_SUBJ);
+    int subject_B = std::floor((double)_pairs[2*pair+1] / VERTICES_PER_SUBJ);
 
-    int meshAID = std::floor((double)nodeA/VERTICES_PER_SUBJ);
-    int meshBID = std::floor((double)nodeB/VERTICES_PER_SUBJ);
+    int node_A = _pairs[2*pair  ] - subject_A * VERTICES_PER_SUBJ;
+    int node_B = _pairs[2*pair+1] - subject_B * VERTICES_PER_SUBJ;
 
-    int nodeAID = nodeA - meshAID*VERTICES_PER_SUBJ;
-    int nodeBID = nodeB - meshBID*VERTICES_PER_SUBJ;
+    std::vector<double> patchA = source_in_range_data[subject_A * VERTICES_PER_SUBJ * m_num_labels + node_A * m_num_labels + labelA];
+    std::vector<double> patchB = source_in_range_data[subject_B * VERTICES_PER_SUBJ * m_num_labels + node_B * m_num_labels + labelB];
 
-    std::vector<int> patchA = _sourceinrange[meshAID*VERTICES_PER_SUBJ*m_num_labels + nodeAID*m_num_labels + labelA];
-    std::vector<int> patchB = _sourceinrange[meshBID*VERTICES_PER_SUBJ*m_num_labels + nodeBID*m_num_labels + labelB];
+    // patch sizes must be equal for Pearson's correlation
+    if(patchA.size() != patchB.size()) {
+        if (patchA.size() < patchB.size()) patchB.resize(patchA.size());
+        if (patchA.size() > patchB.size()) patchA.resize(patchB.size());
+    }
 
-    std::vector<double> patch_data_A(patchA.size(),0.0),
-                        patch_data_B(patchB.size(),0.0);
-
-    for(int i = 0; i < patchA.size(); ++i)
-        patch_data_A[i] = FEAT->get_data_val(1,patchA[i] + 1,meshAID);
-    for(int i = 0; i < patchB.size(); ++i)
-        patch_data_B[i] = FEAT->get_data_val(1,patchB[i] + 1,meshBID);
-
-    if(patch_data_A.size() < patch_data_B.size())
-        patch_data_B.resize(patch_data_A.size());
-    else if (patch_data_A.size() > patch_data_B.size())
-        patch_data_A.resize(patch_data_B.size());
-
-    return sim.get_sim_for_min(patch_data_A, patch_data_B);
+    return sim.get_sim_for_min(patchA, patchB);
 }
 
 } //namespace newmeshreg

@@ -39,6 +39,8 @@ private:
 
     std::vector<NEWMAT::ColumnVector> SPACINGS;
 
+    std::vector<std::vector<double>> source_in_range_data;
+
     int num_subjects = 0;
     int TRIPLETS_PER_SUBJ = 0;
     int VERTICES_PER_SUBJ = 0;
