@@ -29,7 +29,7 @@ void Group_Mesh_registration::initialize_level(int current_lvl) {
     model = std::make_shared<DiscreteGroupModel>(PARAMETERS);
     if(_debug) model->set_debug();
     model->set_featurespace(FEAT);
-    model->set_meshspace(SPH_orig, SPH_orig, (int)MESHES.size());
+    model->set_meshspace(templ, SPH_orig, (int)MESHES.size());
     model->Initialize(control);
 }
 

@@ -79,12 +79,7 @@ void DiscreteGroupModel::Initialize(const newresampler::Mesh& controlgrid) {
     m_controlmeshes.clear();
     m_controlmeshes.resize(m_num_subjects, controlgrid);
 
-    datameshtrees.clear();
-    datameshtrees.resize(m_num_subjects);
-
-    #pragma omp parallel for num_threads(_nthreads)
-    for(int subject = 0; subject < m_num_subjects; ++subject)
-        datameshtrees[subject] = std::make_shared<newresampler::Octree>(m_datameshes[subject]);
+    targettree = std::make_shared<newresampler::Octree>(m_template);
 
     std::vector<NEWMAT::ColumnVector> spacings(m_num_subjects);
     #pragma omp parallel for num_threads(_nthreads)
@@ -114,7 +109,7 @@ void DiscreteGroupModel::Initialize(const newresampler::Mesh& controlgrid) {
     Initialize_sampling_grid();
 
     costfct->set_meshes(m_template, m_datameshes[0], controlgrid, m_num_subjects);
-    costfct->set_trees(datameshtrees);
+    costfct->set_targettree(targettree);
     costfct->set_group_spacings(spacings);
     m_iter = 1;
 }

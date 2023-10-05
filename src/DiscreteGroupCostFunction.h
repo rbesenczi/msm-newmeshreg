@@ -20,7 +20,7 @@ public:
     //---INITIALISATION---//
     void initialize(int numNodes, int numLabels, int numPairs, int numTriplets) override;
     void set_group_spacings(const std::vector<NEWMAT::ColumnVector>& sp) override { SPACINGS = sp; }
-    void set_trees(const std::vector<std::shared_ptr<newresampler::Octree>>& trees) override { datameshtrees = trees; }
+    void set_targettree(const std::shared_ptr<newresampler::Octree>& tree) override { targettree = tree; }
 
     //---Updates---//
     void reset_source(const newresampler::Mesh& source, int num = 0) override { _DATAMESHES[num] = source; }
