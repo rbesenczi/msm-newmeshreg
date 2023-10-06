@@ -29,7 +29,7 @@ public:
     //---Compute costs---//
     double computeTripletCost(int triplet, int labelA, int labelB, int labelC) override;
     double computePairwiseCost(int pair, int labelA, int labelB) override;
-    void get_source_data() override;
+    void get_patch_data();
 
 private:
     std::vector<newresampler::Mesh> _DATAMESHES;
@@ -39,7 +39,7 @@ private:
 
     std::vector<NEWMAT::ColumnVector> SPACINGS;
 
-    std::vector<std::vector<double>> source_in_range_data;
+    std::vector<std::map<int,double>> patch_data;
 
     int num_subjects = 0;
     int TRIPLETS_PER_SUBJ = 0;
