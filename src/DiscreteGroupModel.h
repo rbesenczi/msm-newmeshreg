@@ -12,6 +12,10 @@ class DiscreteGroupModel : public NonLinearSRegDiscreteModel {
     std::vector<newresampler::Mesh> m_controlmeshes;
     newresampler::Mesh m_template;
     std::shared_ptr<newresampler::Octree> targettree;
+    std::vector<newresampler::Mesh> rotated_datameshes;
+    std::vector<NEWMAT::Matrix> resampled_data;
+    std::vector<std::map<int,double>> patch_data;
+    std::vector<NEWMAT::ColumnVector> spacings;
 
     int m_num_subjects = 0;
     int control_grid_size = 0;
@@ -57,6 +61,8 @@ public:
     void initialize_pairs();
     void estimate_pairs() override;
     void estimate_triplets() override;
+    void get_rotated_meshes();
+    void get_patch_data();
 
     void Initialize(const newresampler::Mesh& controlgrid) override;
     void get_rotations(std::vector<NEWMAT::Matrix>&) override;

@@ -60,21 +60,19 @@ void Group_Mesh_registration::run_discrete_opt(std::vector<newresampler::Mesh>& 
     for (int i = 0; i < meshes.size(); ++i)
         original_controlgrids[i] = model->get_CPgrid(i);
 
-    for(int iter = 1; iter < boost::get<int>(PARAMETERS.find("iters")->second); ++iter)
-    {
+    for(int iter = 1; iter < boost::get<int>(PARAMETERS.find("iters")->second); ++iter) {
+
         model->setupCostFunction();
 #ifdef HAS_HOCR
         double newenergy = Fusion::optimize(model, _verbose, _numthreads);
 #else
         throw MeshregException("Groupwise mode is only supported in the HOCR version of MSM.");
 #endif
-        if(iter > 1 && iter % 2 != 0 && energy-newenergy < 0.1)
-        {
+        if(iter > 1 && iter % 2 != 0 && energy-newenergy < 0.1) {
             if (_verbose)
                 std::cout << iter << " level has converged.\n"
                           << "New energy==" << newenergy << "\tPrevious energy==" << energy
                           << "\tEnergy decrease==" << energy - newenergy << std::endl;
-
             break;
         }
 

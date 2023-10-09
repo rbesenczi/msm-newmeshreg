@@ -30,12 +30,21 @@ public:
     double computeTripletCost(int triplet, int labelA, int labelB, int labelC) override;
     double computePairwiseCost(int pair, int labelA, int labelB) override;
     void get_patch_data();
+    void set_rotated_meshes(const std::vector<newresampler::Mesh>& MESHES, const std::vector<NEWMAT::Matrix>& data) override {
+        _ROTATED_DATAMESHES = MESHES;
+        resampled_data = data;
+    }
+    void set_patch_data(const std::vector<std::map<int,double>>& patches) override {
+        patch_data = patches;
+    }
 
 private:
     std::vector<newresampler::Mesh> _DATAMESHES;
+    std::vector<newresampler::Mesh> _ROTATED_DATAMESHES;
     std::vector<newresampler::Mesh> _CONTROLMESHES;
     newresampler::Mesh _TEMPLATE;
     std::vector<std::shared_ptr<newresampler::Octree>> datameshtrees;
+    std::vector<NEWMAT::Matrix> resampled_data;
 
     std::vector<NEWMAT::ColumnVector> SPACINGS;
 

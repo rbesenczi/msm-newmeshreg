@@ -104,6 +104,7 @@ public:
         costfct->set_anatomical_neighbourhood(weights, neighbourhood);
     }
     inline void set_featurespace(const std::shared_ptr<featurespace>& FEATURES) {
+        FEAT = FEATURES;
         costfct->set_featurespace(FEATURES);
     }
     // costfunction weighting combines source and reference weightings at beginning of optimisation iteration -
@@ -143,6 +144,7 @@ protected:
     newresampler::Mesh m_samplinggrid;
 
     std::shared_ptr<newresampler::Octree> m_inputtree;
+    std::shared_ptr<featurespace> FEAT;
 
     int m_SGres = 4; // sampling grid resolution
     int m_CPres = 2;
@@ -152,6 +154,7 @@ protected:
     double m_maxs_dist = 0.0; // define maximum distance between the centre of the sampling grid and the furthest label
     double MVD = 0.0;
     double _labeldist = 0.5;
+    double range = 1;
     float m_scale = 0.0;
     bool m_multivariate = false;
     bool m_debug = false;

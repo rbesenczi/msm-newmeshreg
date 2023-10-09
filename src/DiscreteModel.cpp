@@ -15,6 +15,7 @@ void NonLinearSRegDiscreteModel::set_parameters(myparam& PAR) {
     it=PAR.find("rescalelabels"); m_rescalelabels = boost::get<bool>(it->second);
     it=PAR.find("numthreads"); _nthreads = boost::get<int>(it->second);
     it=PAR.find("labeldist"); _labeldist = boost::get<float>(it->second);
+    it=PAR.find("range"); range=boost::get<float>(it->second);
     if(m_regoption == 1) _pairwise = true;
 }
 

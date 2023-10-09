@@ -176,6 +176,8 @@ public:
     }
     virtual void set_targettree(const std::shared_ptr<newresampler::Octree>& tree) {}
     virtual void set_group_spacings(const std::vector<NEWMAT::ColumnVector>& sp) { }
+    virtual void set_rotated_meshes(const std::vector<newresampler::Mesh>& MESHES, const std::vector<NEWMAT::Matrix>& data) { }
+    virtual void set_patch_data(const std::vector<std::map<int,double>>& patches) { }
     virtual void set_spacings(const NEWMAT::ColumnVector& spacings, double MAX) { MAXSEP = spacings; MVDmax = MAX; }
     void set_octrees(std::shared_ptr<newresampler::Octree>& targett) { targettree = targett; }
     virtual void reset_source(const newresampler::Mesh& source, int num = 0) { _SOURCE = source; }
