@@ -11,6 +11,7 @@ class Group_Mesh_registration : public Mesh_registration {
 
     std::vector<newresampler::Mesh> ALL_SPH_REG;
     newresampler::Mesh templ;
+    int num_subjects = 1;
 
 public:
     void initialize_level(int current_lvl) override;
@@ -21,22 +22,20 @@ public:
 
     inline void set_inputs(const std::string& s) {
         std::vector<std::string> meshlist = read_ascii_list(s);
+        num_subjects = meshlist.size();
         MESHES.clear();
-        MESHES.resize(meshlist.size());
-        for (int i = 0; i < meshlist.size(); ++i)
-        {
-            if(_verbose) std::cout << "Mesh #" << i << " is " << meshlist[i] << std::endl;
-            newresampler::Mesh tmp;
-            tmp.load(meshlist[i]);
-            MESHES[i] = tmp;
+        MESHES.resize(num_subjects);
+        for (int subject = 0; subject < num_subjects; ++subject) {
+            if(_verbose) std::cout << "Mesh #" << subject << " is " << meshlist[subject] << std::endl;
+            MESHES[subject].load(meshlist[subject]);
         }
     }
 
     inline void set_data_list(const std::string& s) {
         DATAlist = read_ascii_list(s);
         if (_verbose)
-            for (int i = 0; i < DATAlist.size(); ++i)
-                std::cout << "Data #" << i << " is " << DATAlist[i] << std::endl;
+            for (int subject = 0; subject < DATAlist.size(); ++subject)
+                std::cout << "Data #" << subject << " is " << DATAlist[subject] << std::endl;
     }
 
     inline void set_template(const std::string &M) {
@@ -47,8 +46,8 @@ public:
     }
 
     inline void saveSPH_reg(const std::string& filename) const override {
-        for(int i = 0; i < ALL_SPH_REG.size(); ++i)
-            ALL_SPH_REG[i].save(filename + "sphere-" + std::to_string(i) + ".LR.reg" + _surfformat);
+        for(int subject = 0; subject < num_subjects; ++subject)
+            ALL_SPH_REG[subject].save(filename + "sphere-" + std::to_string(subject) + ".LR.reg" + _surfformat);
     }
 };
 

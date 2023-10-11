@@ -14,6 +14,7 @@ class DiscreteGroupModel : public NonLinearSRegDiscreteModel {
     std::shared_ptr<newresampler::Octree> targettree;
     std::vector<std::map<int,double>> patch_data;
     std::vector<NEWMAT::ColumnVector> spacings;
+    std::vector<NEWMAT::Matrix> rotated_meshes;
 
     int m_num_subjects = 0;
     int control_grid_size = 0;
@@ -35,7 +36,7 @@ public:
 
     void reset_meshspace(const newresampler::Mesh& source, int num = 0) override {
         m_datameshes[num] = source;
-        costfct->reset_source(source, num);
+        //costfct->reset_source(source, num);
     }
 
     void reset_CPgrid(const newresampler::Mesh& grid, int num = 0) override { m_controlmeshes[num] = grid; }
@@ -48,10 +49,10 @@ public:
     void applyLabeling() override { applyLabeling(labeling); }
     void applyLabeling(int* dlabels) override {
         #pragma omp parallel for num_threads(_nthreads)
-        for (int n = 0; n < m_num_subjects; n++)
-            for (int i = 0; i < control_grid_size; i++)
-                m_controlmeshes[n].set_coord(i, m_ROT[i + n * control_grid_size] *
-                                                m_labels[dlabels[i + n * control_grid_size]]);
+        for (int subject = 0; subject < m_num_subjects; subject++)
+            for (int vertex = 0; vertex < control_grid_size; vertex++)
+                m_controlmeshes[subject].set_coord(vertex, m_ROT[subject * control_grid_size + vertex] *
+                                                           m_labels[dlabels[subject * control_grid_size + vertex]]);
     }
 
     newresampler::Mesh get_CPgrid(int num = 0) override { return m_controlmeshes[num]; }
@@ -60,6 +61,7 @@ public:
     void estimate_pairs() override;
     void estimate_triplets() override;
     void get_patch_data();
+    void get_rotated_meshes();
 
     void Initialize(const newresampler::Mesh& controlgrid) override;
     void get_rotations(std::vector<NEWMAT::Matrix>&) override;

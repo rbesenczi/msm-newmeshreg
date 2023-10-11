@@ -279,7 +279,7 @@ void Mesh_registration::save_transformed_data(const std::string& filename) {
 }
 
 //---PROJECT TRANSFORMATION FROM PREVIOUS LEVEL TO UPSAMPLED SOURCE---//
-newresampler::Mesh Mesh_registration::project_CPgrid(newresampler::Mesh SPH_in, newresampler::Mesh REG, int num) {
+newresampler::Mesh Mesh_registration::project_CPgrid(newresampler::Mesh SPH_in, const newresampler::Mesh& REG, int num) {
     // num indices which warp for group registration
 
     if(level == 1)
@@ -313,47 +313,36 @@ newresampler::Mesh Mesh_registration::project_CPgrid(newresampler::Mesh SPH_in, 
     return SPH_in;
 }
 
-// iterates over discrete optimisations
 void Mesh_registration::run_discrete_opt(newresampler::Mesh& source) {
 
-    newresampler::Mesh controlgrid = model->get_CPgrid(),
-                       targetmesh = model->get_TARGET(),
-                       sourcetmp = source;
-    int _itersforlevel = boost::get<int>(PARAMETERS.find("iters")->second);
-    int numNodes = model->getNumNodes(), iter = 1;
     double energy = 0.0, newenergy = 0.0;
 
-    while(iter <= _itersforlevel)
-    {
-        NEWMAT::Matrix CombinedWeight;
+    for(int iter = 1; iter <= boost::get<int>(PARAMETERS.find("iters")->second); iter++) {
         // resample and combine the reference cost function weighting with the source if provided
-        if(_incfw && _refcfw)
-        {
+        NEWMAT::Matrix CombinedWeight;
+        if(_incfw && _refcfw) {
             NEWMAT::Matrix ResampledRefWeight = SPHref_CFWEIGHTING;
+            newresampler::Mesh targetmesh = model->get_TARGET();
             targetmesh.set_pvalues(ResampledRefWeight);
             ResampledRefWeight = newresampler::metric_resample(targetmesh, source, _numthreads).get_pvalues();
-
             CombinedWeight = combine_costfunction_weighting(SPHin_CFWEIGHTING, ResampledRefWeight);
         }
-        else
-        {
+        else {
             CombinedWeight.resize(1, source.nvertices());
             CombinedWeight = 1;
         }
-
-        model->reset_meshspace(source); // source mesh is updated and control point grids are reset
         model->setupCostFunctionWeighting(CombinedWeight);
+
+        model->reset_meshspace(source);
         model->setupCostFunction();
 
         if(_verbose) std::cout << "Run optimisation." << std::endl;
 
-        if(_discreteOPT == "MCMC")
-        {
+        if(_discreteOPT == "MCMC") {
             if(!_tricliquelikeihood) model->computeUnaryCosts();
             newenergy = MCMC::optimise(model, _verbose, _mciters[level-1]);
         }
-        else if(_discreteOPT == "FastPD")
-        {
+        else if(_discreteOPT == "FastPD") {
 #ifdef HAS_FPD
             model->computeUnaryCosts();
             model->computePairwiseCosts();
@@ -364,8 +353,7 @@ void Mesh_registration::run_discrete_opt(newresampler::Mesh& source) {
             throw MeshregException("FastPD is not supported in this version of newMSM. Please use MCMC.");
 #endif
         }
-        else if(_discreteOPT == "HOCR")
-        {
+        else if(_discreteOPT == "HOCR") {
 #ifdef HAS_HOCR
             newenergy = Fusion::optimize(model, _verbose, _numthreads);
 #else
@@ -379,35 +367,32 @@ void Mesh_registration::run_discrete_opt(newresampler::Mesh& source) {
         else
             throw MeshregException("Unrecognized optimiser");
 
-        if(iter > 1 && ((iter - 1) % 2 == 0) && (energy - newenergy < 0.001) && _discreteOPT != "MCMC")
-        {
-            if(_verbose)
-            {
+        if(iter > 1 && ((iter - 1) % 2 == 0) && (energy - newenergy < 0.001) && _discreteOPT != "MCMC") {
+            if(_verbose) {
                 std::cout << iter << " level has converged." << std::endl;
                 std::cout <<  "newenergy " << newenergy <<  "\tenergy " << energy
-                          <<  "\tenergy-newenergy " <<  energy-newenergy << std::endl;
+                          <<  "\tEnergy decrease: " <<  energy-newenergy << std::endl;
             }
             break;
         }
 
-        if(_verbose)
-            std::cout <<  "newenergy " << newenergy <<  "\tenergy " << energy
-            <<  "\tenergy-newenergy " <<  energy-newenergy << std::endl;
+        if(_verbose) {
+            std::cout << "newenergy " << newenergy << "\tenergy " << energy
+                      << "\tEnergy decrease: " << energy - newenergy << std::endl;
+        }
 
-        //Get initial energy
-        //get labelling choices from the FastPD optimiser
+        newresampler::Mesh previous_controlgrid = model->get_CPgrid();
+
         model->applyLabeling();
         // apply these choices in order to deform the CP grid
         newresampler::Mesh transformed_controlgrid = model->get_CPgrid();
         // use the control point updates to warp the source mesh
-        newresampler::barycentric_mesh_interpolation(source, controlgrid, transformed_controlgrid, _numthreads);
-        controlgrid = transformed_controlgrid;
+        newresampler::barycentric_mesh_interpolation(source, previous_controlgrid, transformed_controlgrid, _numthreads);
         // higher order frameowrk continuous deforms the CP grid whereas the original FW resets the grid each time
         unfold(transformed_controlgrid, _verbose);
         model->reset_CPgrid(transformed_controlgrid); // source mesh is updated and control point grids are reset
         unfold(source, _verbose);
         energy = newenergy;
-        iter++;
     }
 }
 

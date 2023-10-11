@@ -16,16 +16,16 @@ featurespace::featurespace(const std::vector<std::string>& datalist) {
 }
 
 void featurespace::set_smoothing_parameters(const std::vector<double>& s) {
-
+/*
     _sigma_in.clear();
     if (s.size() != CMfile_in.size())
         if (s.size() == 1)
-            for (int i = 0; i < (int) CMfile_in.size(); i++)
-                _sigma_in.push_back(s[0]);
+            _sigma_in.resize(CMfile_in.size(),s[0]);
         else
             throw MeshregException("Meshreg::featurespace smoothing sigma size incompatible with data dimensions");
     else
-        _sigma_in = s;
+*/
+    _sigma_in = s;
 }
 
 newresampler::Mesh featurespace::initialize(int ico, std::vector<newresampler::Mesh>& IN, bool exclude) {

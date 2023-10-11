@@ -8,7 +8,7 @@ void Group_Mesh_registration::initialize_level(int current_lvl) {
     if(cost[current_lvl] == "RIGID" || cost[current_lvl] == "AFFINE")
         throw MeshregException("AFFINE/RIGID registration is not supported in groupwise mode yet.");
 
-    const std::vector<double> sigma(MESHES.size(), _sigma_in[current_lvl]);
+    const std::vector<double> sigma(num_subjects, _sigma_in[current_lvl]);
 
     FEAT = std::make_shared<featurespace>(DATAlist);
     FEAT->set_smoothing_parameters(sigma);
@@ -29,46 +29,42 @@ void Group_Mesh_registration::initialize_level(int current_lvl) {
     model = std::make_shared<DiscreteGroupModel>(PARAMETERS);
     if(_debug) model->set_debug();
     model->set_featurespace(FEAT);
-    model->set_meshspace(templ, SPH_orig, (int)MESHES.size());
+    model->set_meshspace(templ, SPH_orig, num_subjects);
     model->Initialize(control);
 }
 
 void Group_Mesh_registration::evaluate() {
 
-    newresampler::Mesh previous_level_reg;
-    for(int i = 0; i < MESHES.size(); ++i)
-    {
-        if(level == 1)
-            ALL_SPH_REG.push_back(project_CPgrid(SPH_orig, previous_level_reg, i));
-        else
-        {
-            previous_level_reg = ALL_SPH_REG[i];
-            ALL_SPH_REG[i] = project_CPgrid(SPH_orig, previous_level_reg, i);
-        }
-    }
+    if (level == 1)
+        ALL_SPH_REG.resize(num_subjects, SPH_orig);
+    else
+        for (int subject = 0; subject < num_subjects; subject++)
+            ALL_SPH_REG[subject] = project_CPgrid(SPH_orig, ALL_SPH_REG[subject], subject);
 
     run_discrete_opt(ALL_SPH_REG);
 
-    if(_verbose) std::cout << "Exit main algorithm." << std::endl;
+    if(_verbose) std::cout << "Exit main algorithm at level " << level << '.' << std::endl;
 }
 
 void Group_Mesh_registration::run_discrete_opt(std::vector<newresampler::Mesh>& meshes) {
 
-    double energy = 0.0;
-    std::vector<newresampler::Mesh> original_controlgrids(meshes.size());
+    double energy = 0.0, newenergy = 0.0;
+    std::vector<newresampler::Mesh> previous_controlgrids(num_subjects);
 
-    for (int i = 0; i < meshes.size(); ++i)
-        original_controlgrids[i] = model->get_CPgrid(i);
+    for(int iter = 1; iter <= boost::get<int>(PARAMETERS.find("iters")->second); iter++) {
 
-    for(int iter = 1; iter < boost::get<int>(PARAMETERS.find("iters")->second); ++iter) {
+        for (int subject = 0; subject < num_subjects; subject++) {
+            model->reset_meshspace(ALL_SPH_REG[subject], subject);
+            previous_controlgrids[subject] = model->get_CPgrid(subject);
+        }
 
         model->setupCostFunction();
 #ifdef HAS_HOCR
-        double newenergy = Fusion::optimize(model, _verbose, _numthreads);
+        newenergy = Fusion::optimize(model, _verbose, _numthreads);
 #else
         throw MeshregException("Groupwise mode is only supported in the HOCR version of MSM.");
 #endif
-        if(iter > 1 && iter % 2 != 0 && energy-newenergy < 0.1) {
+        if(iter > 1 && iter % 2 != 0 && energy-newenergy < 1) {
             if (_verbose)
                 std::cout << iter << " level has converged.\n"
                           << "New energy==" << newenergy << "\tPrevious energy==" << energy
@@ -80,36 +76,33 @@ void Group_Mesh_registration::run_discrete_opt(std::vector<newresampler::Mesh>& 
 
         model->applyLabeling();
 
-        for(int i = 0; i < meshes.size(); ++i)
+        for(int subject = 0; subject < num_subjects; subject++)
         {
-            auto transformed_controlgrid = model->get_CPgrid(i);
+            auto transformed_controlgrid = model->get_CPgrid(subject);
             unfold(transformed_controlgrid, _verbose);
-            model->reset_CPgrid(transformed_controlgrid, i);
+            model->reset_CPgrid(transformed_controlgrid, subject);
+            newresampler::barycentric_mesh_interpolation(ALL_SPH_REG[subject], previous_controlgrids[subject], transformed_controlgrid, _numthreads);
+            unfold(ALL_SPH_REG[subject], _verbose);
         }
-        energy = newenergy;
-    }
 
-    for(int i = 0; i < meshes.size(); ++i)
-    {
-        newresampler::barycentric_mesh_interpolation(meshes[i], original_controlgrids[i], model->get_CPgrid(i), _numthreads);
-        unfold(meshes[i], _verbose);
+        energy = newenergy;
     }
 }
 
 void Group_Mesh_registration::transform(const std::string &filename) {
-    for(int i = 0; i < MESHES.size(); ++i)
+    for(int subject = 0; subject < num_subjects; ++subject)
     {
-        newresampler::barycentric_mesh_interpolation(MESHES[i], SPH_orig, ALL_SPH_REG[i],_numthreads);
-        MESHES[i].save(filename + "sphere-" + std::to_string(i) + ".reg" + _surfformat);
+        newresampler::barycentric_mesh_interpolation(MESHES[subject], SPH_orig, ALL_SPH_REG[subject], _numthreads);
+        MESHES[subject].save(filename + "sphere-" + std::to_string(subject) + ".reg" + _surfformat);
     }
 }
 
 void Group_Mesh_registration::save_transformed_data(const std::string &filename) {
-    for(int i = 0; i < MESHES.size(); ++i)
+    for(int subject = 0; subject < num_subjects; ++subject)
     {
         std::shared_ptr<MISCMATHS::BFMatrix> data;
-        set_data(DATAlist[i], data, MESHES[i]);
-        newresampler::metric_resample(MESHES[i], templ, _numthreads).save(filename + "transformed_and_reprojected-" + std::to_string(i) + _dataformat);
+        set_data(DATAlist[subject], data, MESHES[subject]);
+        newresampler::metric_resample(MESHES[subject], templ, _numthreads).save(filename + "transformed_and_reprojected-" + std::to_string(subject) + _dataformat);
     }
 }
 
