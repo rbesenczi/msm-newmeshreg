@@ -15,19 +15,6 @@ featurespace::featurespace(const std::vector<std::string>& datalist) {
     CMfile_in = datalist;
 }
 
-void featurespace::set_smoothing_parameters(const std::vector<double>& s) {
-/*
-    _sigma_in.clear();
-    if (s.size() != CMfile_in.size())
-        if (s.size() == 1)
-            _sigma_in.resize(CMfile_in.size(),s[0]);
-        else
-            throw MeshregException("Meshreg::featurespace smoothing sigma size incompatible with data dimensions");
-    else
-*/
-    _sigma_in = s;
-}
-
 newresampler::Mesh featurespace::initialize(int ico, std::vector<newresampler::Mesh>& IN, bool exclude) {
 
     newresampler::Mesh icotmp;
@@ -35,7 +22,7 @@ newresampler::Mesh featurespace::initialize(int ico, std::vector<newresampler::M
     if (IN.size() != CMfile_in.size())
         throw MeshregException("featurespace::Initialize do not have the same number of datasets and surface meshes");
     else
-        DATA.resize(IN.size(), std::shared_ptr<MISCMATHS::BFMatrix>());
+        DATA.resize(CMfile_in.size(), std::shared_ptr<MISCMATHS::BFMatrix>());
 
     if(ico > 0)
     {

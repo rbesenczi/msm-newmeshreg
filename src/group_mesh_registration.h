@@ -28,6 +28,8 @@ public:
         for (int subject = 0; subject < num_subjects; ++subject) {
             if(_verbose) std::cout << "Mesh #" << subject << " is " << meshlist[subject] << std::endl;
             MESHES[subject].load(meshlist[subject]);
+            recentre(MESHES[subject]);
+            true_rescale(MESHES[subject], RAD);
         }
     }
 

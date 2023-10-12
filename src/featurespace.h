@@ -19,7 +19,7 @@ public:
     newresampler::Mesh initialize(int, std::vector<newresampler::Mesh>&, bool);
 
     //---SET---//
-    void set_smoothing_parameters(const std::vector<double>& s);
+    inline void set_smoothing_parameters(const std::vector<double>& s) { _sigma_in = s; }
     inline void set_cutthreshold(const std::vector<float>& thr) { _fthreshold = thr; }
     inline void varnorm(bool norm) { _varnorm = norm; }
     inline void is_sparse(bool sp) { _issparse = sp; }
