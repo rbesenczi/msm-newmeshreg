@@ -82,8 +82,8 @@ void DiscreteGroupModel::get_rotated_meshes() {
         for (int label = 0; label < m_num_labels; label++) {
             for (int vertex = 0; vertex < control_grid_size; vertex++) {
                 const newresampler::Point CP = m_controlmeshes[subject].get_coord(vertex);
-                for (int datapoint = 0; datapoint < rotated_mesh.nvertices(); datapoint++) {
-                    const newresampler::Point SP = rotated_mesh.get_coord(datapoint);
+                for (int datapoint = 0; datapoint < m_datameshes[subject].nvertices(); datapoint++) {
+                    const newresampler::Point SP = m_datameshes[subject].get_coord(datapoint);
                     if (((2 * RAD * asin((CP - SP).norm() / (2 * RAD))) < range * spacings[subject](vertex + 1)))
                         rotated_mesh.set_coord(datapoint,
                            SP * estimate_rotation_matrix(CP, m_ROT[subject * control_grid_size + vertex] * m_labels[label]));

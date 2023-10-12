@@ -11,7 +11,6 @@ class DiscreteGroupModel : public NonLinearSRegDiscreteModel {
     std::vector<newresampler::Mesh> m_datameshes;
     std::vector<newresampler::Mesh> m_controlmeshes;
     newresampler::Mesh m_template;
-    std::shared_ptr<newresampler::Octree> targettree;
     std::vector<std::map<int,double>> patch_data;
     std::vector<NEWMAT::ColumnVector> spacings;
     std::vector<NEWMAT::Matrix> rotated_meshes;
